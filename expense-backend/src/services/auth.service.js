@@ -8,29 +8,62 @@ const JWT_SECRET = process.env.JWT_SECRET || "phuwanat_super_secret_key";
 // Register
 exports.register = async (data) => {
 
-    const { name, email, password } = data;
+    const {
+        username,
+        email,
+        password,
+        prefix,
+        firstName,
+        lastName,
+        phone,
+        citizenId
+    } = data;
+
+    if (!username) throw new Error("กรุณากรอก Username");
+
+    if (!/^\d{10}$/.test(phone)) {
+        throw new Error("เบอร์โทรต้องมี 10 หลัก");
+    }
+
+    if (!/^\d{13}$/.test(citizenId)) {
+        throw new Error("เลขบัตรประชาชนต้องมี 13 หลัก");
+    }
 
     const users = await sheet.getRows("Users");
     const rows = users.slice(1);
 
-    const duplicate = rows.find(
-        row =>
-            row[2] &&
-            row[2].toLowerCase() === email.toLowerCase()
-    );
+    if (rows.find(row => row[1] === username)) {
+        throw new Error("Username นี้ถูกใช้งานแล้ว");
+    }
 
-    if (duplicate) {
+    if (rows.find(row => row[2]?.toLowerCase() === email.toLowerCase())) {
         throw new Error("Email นี้ถูกใช้งานแล้ว");
+    }
+
+    if (rows.find(row => row[9] === phone)) {
+        throw new Error("เบอร์โทรนี้ถูกใช้งานแล้ว");
+    }
+
+    if (rows.find(row => row[10] === citizenId)) {
+        throw new Error("เลขบัตรประชาชนนี้ถูกใช้งานแล้ว");
     }
 
     const hash = await bcrypt.hash(password, 10);
 
+    const fullName = `${prefix}${firstName} ${lastName}`;
+
     await sheet.appendRow("Users", [
         crypto.randomUUID(),
-        name,
+        username,
         email,
         hash,
         "user",
+        prefix,
+        firstName,
+        lastName,
+        fullName,
+        phone,
+        citizenId,
         new Date().toISOString()
     ]);
 
@@ -41,7 +74,7 @@ exports.register = async (data) => {
 
 };
 
-// Login
+//Login
 exports.login = async (data) => {
 
     const { email, password } = data;
@@ -50,9 +83,7 @@ exports.login = async (data) => {
     const rows = users.slice(1);
 
     const user = rows.find(
-        row =>
-            row[2] &&
-            row[2].toLowerCase() === email.toLowerCase()
+        row => row[2] && row[2].toLowerCase() === email.toLowerCase()
     );
 
     if (!user) {
@@ -68,9 +99,10 @@ exports.login = async (data) => {
     const token = jwt.sign(
         {
             id: user[0],
-            name: user[1],
+            username: user[1],
             email: user[2],
-            role: user[4]
+            role: user[4],
+            fullName: user[8]
         },
         JWT_SECRET,
         {
@@ -80,7 +112,15 @@ exports.login = async (data) => {
 
     return {
         success: true,
-        message: "เข้าสู่ระบบสำเร็จ"
+        token,
+        user: {
+            id: user[0],
+            username: user[1],
+            email: user[2],
+            role: user[4],
+            fullName: user[8],
+            phone: user[9]
+        }
     };
 
 };
