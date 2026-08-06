@@ -8,10 +8,7 @@ export const getTransactions = async () => {
 
 }
 
-export const createTransaction = async(data)=>{
-
-    const res = await api.post("/transactions",data);
-
-    return res.data;
-
-}
+export const createTransaction = async (data) => {
+  const res = await api.post("/transactions", data);
+  return res.data;
+};

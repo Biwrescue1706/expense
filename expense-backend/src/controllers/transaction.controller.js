@@ -1,86 +1,51 @@
-const sheet = require("../services/sheet.service");
+// backend/src/controllers/transaction.controller.js
 
+const transactionService = require("../services/transaction.service");
 
+// =======================
 // GET ALL
+// =======================
 exports.getTransactions = async (req, res) => {
     try {
 
-        const transactions = await sheet.getRows("Transactions");
-        const categories = await sheet.getRows("Categories");
-        const types = await sheet.getRows("Type");
-
-        let balance = 0;
-
-        const data = transactions.map((item) => {
-
-            const category = categories.find(
-                c => c.id == item.categoryId
-            );
-
-            const type = types.find(
-                t => t.id == category?.typeId
-            );
-
-            const amount = Number(item.amount);
-
-            let income = 0;
-            let expense = 0;
-
-            if (type?.typeName === "รายรับ") {
-                income = amount;
-                balance += amount;
-            } else {
-                expense = amount;
-                balance -= amount;
-            }
-
-            return {
-                id: item.id,
-                date: item.date,
-                category: category?.name,
-                typeName: type?.typeName,
-                income,
-                expense,
-                balance,
-                note: item.note
-            };
-
-        });
+        const data = await transactionService.getAll();
 
         res.json(data);
 
     } catch (err) {
 
+        console.error(err);
+
         res.status(500).json({
             success: false,
-            message: err.message
+            message: err.message,
         });
 
     }
 };
 
+// =======================
 // GET ONE
+// =======================
 exports.getTransaction = async (req, res) => {
-
     try {
 
-        const transaction = await sheet.findById(
-            "Transactions",
+        const data = await transactionService.getById(
             req.params.id
         );
 
-        if (!transaction) {
-
+        if (!data) {
             return res.status(404).json({
                 success: false,
-                message: "Transaction not found",
+                message: "ไม่พบข้อมูล"
             });
-
         }
 
-        res.json(transaction);
+        res.json(data);
 
     } catch (err) {
+
+        console.error(err);
 
         res.status(500).json({
             success: false,
@@ -88,129 +53,77 @@ exports.getTransaction = async (req, res) => {
         });
 
     }
-
 };
 
+// =======================
 // CREATE
+// =======================
 exports.createTransaction = async (req, res) => {
-
     try {
 
-        const {
-            date,
-            categoryId,
-            amount,
-            note,
-        } = req.body;
-
-        if (!date || !categoryId || !amount) {
-
-            return res.status(400).json({
-                success: false,
-                message: "กรุณากรอกข้อมูลให้ครบ",
-            });
-
-        }
-
-        const id = await sheet.nextId("Transactions");
-
-        await sheet.appendRow("Transactions", [
-            id,
-            date,
-            categoryId,
-            amount,
-            note || "",
-        ]);
-
-        res.status(201).json({
-            success: true,
-            message: "เพิ่มข้อมูลสำเร็จ",
-        });
-
-    } catch (err) {
-
-        res.status(500).json({
-            success: false,
-            message: err.message,
-        });
-
-    }
-
-};
-
-// UPDATE
-exports.updateTransaction = async (req, res) => {
-
-    try {
-
-        const { id } = req.params;
-
-        const {
-            date,
-            categoryId,
-            amount,
-            note,
-        } = req.body;
-
-        const ok = await sheet.updateRow(
-            "Transactions",
-            id,
-            {
-                id,
-                date,
-                categoryId,
-                amount,
-                note,
-            }
+        const result = await transactionService.create(
+            req.body
         );
 
-        if (!ok) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Transaction not found",
-            });
-
-        }
-
-        res.json({
-            success: true,
-            message: "อัปเดตสำเร็จ",
-        });
+        res.status(201).json(result);
 
     } catch (err) {
 
-        res.status(500).json({
+        console.error(err);
+
+        res.status(400).json({
             success: false,
             message: err.message,
         });
 
     }
-
 };
 
-// DELETE
-exports.deleteTransaction = async (req, res) => {
-
+// =======================
+// UPDATE
+// =======================
+exports.updateTransaction = async (req, res) => {
     try {
 
-        await sheet.deleteRow(
-            "Transactions",
+        const result = await transactionService.update(
+            req.params.id,
+            req.body
+        );
+
+        res.json(result);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+
+    }
+};
+
+// =======================
+// DELETE
+// =======================
+exports.deleteTransaction = async (req, res) => {
+    try {
+
+        const result = await transactionService.remove(
             req.params.id
         );
 
-        res.json({
-            success: true,
-            message: "ลบข้อมูลสำเร็จ",
-        });
+        res.json(result);
 
     } catch (err) {
 
-        res.status(500).json({
+        console.error(err);
+
+        res.status(400).json({
             success: false,
             message: err.message,
         });
 
     }
-
 };

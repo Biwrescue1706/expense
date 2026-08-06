@@ -1,19 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
-"https://hub-cashflow.smartdorm-biwboong.shop",
-"https://cashflow-page.smartdorm-biwboong.shop",
+    "https://hub-cashflow.smartdorm-biwboong.shop",
+    "https://cashflow-page.smartdorm-biwboong.shop",
 ];
 
 app.use(

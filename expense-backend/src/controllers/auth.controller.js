@@ -1,9 +1,6 @@
 const authService = require("../services/auth.service");
 
-// ===============================
 // Register
-// ===============================
-
 exports.register = async (req, res) => {
     try {
 
@@ -21,10 +18,7 @@ exports.register = async (req, res) => {
     }
 };
 
-// ===============================
 // Login
-// ===============================
-
 exports.login = async (req, res) => {
     try {
 
@@ -32,7 +26,7 @@ exports.login = async (req, res) => {
 
         res.cookie("token", result.token, {
             httpOnly: true,
-            secure: false,      // เปลี่ยนเป็น true เมื่อใช้ HTTPS
+            secure: true,      // เปลี่ยนเป็น true เมื่อใช้ HTTPS
             sameSite: "lax",
             maxAge: 10 * 60 * 1000
         });
@@ -57,10 +51,7 @@ exports.login = async (req, res) => {
     }
 }
 
-// ===============================
 // Forgot Password
-// ===============================
-
 exports.forgotPassword = async (req, res) => {
 
     try {
@@ -83,10 +74,7 @@ exports.forgotPassword = async (req, res) => {
 
 };
 
-// ===============================
 // Verify OTP
-// ===============================
-
 exports.verifyOtp = async (req, res) => {
 
     try {
@@ -123,10 +111,7 @@ exports.verifyOtp = async (req, res) => {
 
 };
 
-// ===============================
 // Reset Password
-// ===============================
-
 exports.resetPassword = async (req, res) => {
 
     try {
@@ -163,10 +148,7 @@ exports.resetPassword = async (req, res) => {
 
 };
 
-// ===============================
 // Profile
-// ===============================
-
 exports.profile = async (req, res) => {
 
     res.json({
@@ -179,10 +161,7 @@ exports.profile = async (req, res) => {
 
 };
 
-// ===============================
 // Change Password
-// ===============================
-
 exports.changePassword = async (req, res) => {
 
     try {
@@ -211,6 +190,7 @@ exports.changePassword = async (req, res) => {
 
 };
 
+// Logout
 exports.logout = (req, res) => {
 
     res.clearCookie("token");

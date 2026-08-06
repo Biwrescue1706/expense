@@ -1,15 +1,19 @@
-//src/controllers/type.controller.js
+//backend/src/controllers/type.controller.js
+const typeService = require("../services/type.service");
 
-const sheetService = require("../services/sheet.service");
-
+// GET
 exports.getTypes = async (req, res) => {
     try {
-        const rows = await sheetService.getRows("Type");
+        const data = await typeService.getAll();
 
-        res.json(rows);
+        res.json({
+            success: true,
+            data
+        });
+
     } catch (err) {
-        console.log(err);
         res.status(500).json({
+            success: false,
             message: err.message
         });
     }
@@ -17,175 +21,50 @@ exports.getTypes = async (req, res) => {
 
 // CREATE
 exports.createType = async (req, res) => {
-
     try {
+        const result = await typeService.create(req.body);
 
-        const { typeName } = req.body;
-
-        if (!typeName) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message: "typeName is required",
-
-            });
-
-        }
-
-        const duplicate = await sheet.findOne(
-
-            "Type",
-
-            "typeName",
-
-            typeName
-
-        );
-
-        if (duplicate) {
-
-            return res.status(409).json({
-
-                success: false,
-
-                message: "Type already exists",
-
-            });
-
-        }
-
-        const id = await sheet.nextId("Type");
-
-        await sheet.appendRow(
-
-            "Type",
-
-            [
-
-                id,
-
-                typeName,
-
-            ]
-
-        );
-
-        res.status(201).json({
-
-            success: true,
-
-            message: "Create success",
-
-        });
+        res.status(201).json(result);
 
     } catch (err) {
-
-        res.status(500).json({
-
+        res.status(400).json({
             success: false,
-
-            message: err.message,
-
+            message: err.message
         });
-
     }
-
 };
 
 // UPDATE
 exports.updateType = async (req, res) => {
-
     try {
-
-        const { id } = req.params;
-
-        const { typeName } = req.body;
-
-        const ok = await sheet.updateRow(
-
-            "Type",
-
-            id,
-
-            {
-
-                id,
-
-                typeName,
-
-            }
-
+        const result = await typeService.update(
+            req.params.id,
+            req.body
         );
 
-        if (!ok) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Type not found",
-
-            });
-
-        }
-
-        res.json({
-
-            success: true,
-
-            message: "Update success",
-
-        });
+        res.json(result);
 
     } catch (err) {
-
-        res.status(500).json({
-
+        res.status(400).json({
             success: false,
-
-            message: err.message,
-
+            message: err.message
         });
-
     }
-
 };
 
 // DELETE
 exports.deleteType = async (req, res) => {
-
     try {
-
-        const { id } = req.params;
-
-        await sheet.deleteRow(
-
-            "Type",
-
-            id
-
+        const result = await typeService.remove(
+            req.params.id
         );
 
-        res.json({
-
-            success: true,
-
-            message: "Delete success",
-
-        });
+        res.json(result);
 
     } catch (err) {
-
-        res.status(500).json({
-
+        res.status(400).json({
             success: false,
-
-            message: err.message,
-
+            message: err.message
         });
-
     }
-
 };

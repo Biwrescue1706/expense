@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-import Layout from "../components/Layout";
+import {
+  FaArrowUp,
+  FaArrowDown,
+  FaWallet,
+} from "react-icons/fa";
 
 function Dashboard() {
   const [summary, setSummary] = useState({
@@ -22,39 +26,95 @@ function Dashboard() {
     }
   };
 
+  const cards = [
+    {
+      title: "รายรับ",
+      value: summary.income,
+      color: "bg-green-500",
+      icon: <FaArrowUp />,
+    },
+    {
+      title: "รายจ่าย",
+      value: summary.expense,
+      color: "bg-red-500",
+      icon: <FaArrowDown />,
+    },
+    {
+      title: "คงเหลือ",
+      value: summary.balance,
+      color: "bg-blue-500",
+      icon: <FaWallet />,
+    },
+  ];
+
   return (
-    <Layout>
-      <h1 className="text-3xl text-black font-bold mb-6">Dashboard</h1>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Dashboard
+        </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* รายรับ */}
-        <div className="bg-green-500 text-white rounded-xl p-6 shadow-lg">
-          <h2 className="text-lg font-medium">รายรับ</h2>
-
-          <p className="text-4xl font-bold mt-3">
-            {Number(summary.income).toLocaleString()} บาท
-          </p>
-        </div>
-
-        {/* รายจ่าย */}
-        <div className="bg-red-500 text-white rounded-xl p-6 shadow-lg">
-          <h2 className="text-lg font-medium">รายจ่าย</h2>
-
-          <p className="text-4xl font-bold mt-3">
-            {Number(summary.expense).toLocaleString()} บาท
-          </p>
-        </div>
-
-        {/* คงเหลือ */}
-        <div className="bg-blue-500 text-white rounded-xl p-6 shadow-lg">
-          <h2 className="text-lg font-medium">คงเหลือ</h2>
-
-          <p className="text-4xl font-bold mt-3">
-            {Number(summary.balance).toLocaleString()} บาท
-          </p>
-        </div>
+        <p className="text-gray-500 mt-1">
+          ภาพรวมรายรับ รายจ่าย และยอดคงเหลือ
+        </p>
       </div>
-    </Layout>
+
+      {/* Summary Cards */}
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map((card) => (
+          <div
+            key={card.title}
+            className="bg-white rounded-2xl shadow border overflow-hidden"
+          >
+            <div className={`${card.color} h-2`} />
+
+            <div className="p-6 flex justify-between items-center">
+              <div>
+                <p className="text-gray-500">
+                  {card.title}
+                </p>
+
+                <h2 className="text-3xl font-bold text-gray-800 mt-2">
+                  {Number(card.value).toLocaleString()} บาท
+                </h2>
+              </div>
+
+              <div
+                className={`${card.color} w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl`}
+              >
+                {card.icon}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom */}
+      <div className="grid gap-6 lg:grid-cols-2">
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            รายการล่าสุด
+          </h2>
+
+          <div className="text-gray-400 text-center py-10">
+            ยังไม่มีข้อมูล
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            กราฟสรุป
+          </h2>
+
+          <div className="text-gray-400 text-center py-10">
+            เตรียมแสดงกราฟรายรับ-รายจ่าย
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }
 

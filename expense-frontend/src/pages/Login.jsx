@@ -1,142 +1,166 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import {
+  FaEnvelope,
+  FaLock,
+  FaWallet,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
 import api from "../api/axios";
 
 function Login() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [form, setForm] = useState({
-        email: "",
-        password: "",
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
     });
+  };
 
-    const [loading, setLoading] = useState(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const handleChange = (e) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value,
-        });
-    };
+    try {
+      setLoading(true);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+      await api.post("/auth/login", form);
 
-        try {
-            setLoading(true);
+      Swal.fire({
+        icon: "success",
+        title: "เข้าสู่ระบบสำเร็จ",
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
-            const res = await api.post("/auth/login", form);
+      navigate("/dashboard");
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "เข้าสู่ระบบไม่สำเร็จ",
+        text: err.response?.data?.message || "Email หรือ Password ไม่ถูกต้อง",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            Swal.fire({
-                icon: "success",
-                title: "เข้าสู่ระบบสำเร็จ",
-                timer: 1500,
-                showConfirmButton: false,
-            });
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-100 via-white to-blue-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden grid lg:grid-cols-2">
+        {/* Left */}
+        <div className="hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-green-600 to-emerald-700 text-white p-12">
+          <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-6">
+            <FaWallet size={42} />
+          </div>
 
-            navigate("/dashboard");
+          <h1 className="text-4xl font-bold mb-4">Expense Tracker</h1>
 
-        } catch (err) {
+          <p className="text-center text-green-100 leading-7">
+            ระบบบันทึกรายรับรายจ่าย
+            <br />
+            จัดการการเงินของคุณได้ง่าย
+            <br />
+            ทุกที่ ทุกเวลา
+          </p>
+        </div>
 
-            Swal.fire({
-                icon: "error",
-                title: "เข้าสู่ระบบไม่สำเร็จ",
-                text:
-                    err.response?.data?.message ||
-                    "Email หรือ Password ไม่ถูกต้อง",
-            });
+        {/* Right */}
+        <div className="p-10 lg:p-14">
+          <h2 className="text-3xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
 
-        } finally {
+          <p className="text-gray-500 mt-2 mb-8">ยินดีต้อนรับกลับ</p>
 
-            setLoading(false);
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
 
-        }
-    };
+              <div className="relative">
+                <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
 
-    return (
-        <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-
-            <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-8">
-
-                <h1 className="text-3xl font-bold text-center text-green-600 mb-2">
-                    Expense Tracker
-                </h1>
-
-                <p className="text-center text-gray-500 mb-8">
-                    เข้าสู่ระบบ
-                </p>
-
-                <form onSubmit={handleSubmit}>
-
-                    <div className="mb-4">
-
-                        <label className="font-medium">
-                            Email
-                        </label>
-
-                        <input
-                            type="email"
-                            name="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            className="w-full border rounded-lg p-3 mt-2 outline-none focus:border-green-500"
-                            placeholder="example@gmail.com"
-                            required
-                        />
-
-                    </div>
-
-                    <div className="mb-5">
-
-                        <label className="font-medium">
-                            Password
-                        </label>
-
-                        <input
-                            type="password"
-                            name="password"
-                            value={form.password}
-                            onChange={handleChange}
-                            className="w-full border rounded-lg p-3 mt-2 outline-none focus:border-green-500"
-                            placeholder="********"
-                            required
-                        />
-
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition"
-                    >
-                        {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-                    </button>
-
-                </form>
-
-                <div className="flex justify-between mt-6 text-sm">
-
-                    <Link
-                        to="/register"
-                        className="text-green-600 hover:underline"
-                    >
-                        สมัครสมาชิก
-                    </Link>
-
-                    <Link
-                        to="/forgot-password"
-                        className="text-red-500 hover:underline"
-                    >
-                        ลืมรหัสผ่าน
-                    </Link>
-
-                </div>
-
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="example@gmail.com"
+                  required
+                  className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                />
+              </div>
             </div>
 
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Password</label>
+
+              <div className="relative">
+                <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="********"
+                  required
+                  className="w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
+
+            {/* Forgot */}
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-green-600 hover:underline"
+              >
+                ลืมรหัสผ่าน?
+              </Link>
+            </div>
+
+            {/* Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 hover:scale-[1.01] transition text-white py-3 rounded-xl font-semibold disabled:opacity-60"
+            >
+              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
+
+          <div className="text-center mt-8 text-sm">
+            ยังไม่มีบัญชีใช่ไหม?{" "}
+            <Link
+              to="/register"
+              className="text-green-600 font-semibold hover:underline"
+            >
+              สมัครสมาชิก
+            </Link>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
 
 export default Login;

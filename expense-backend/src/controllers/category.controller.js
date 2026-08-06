@@ -1,23 +1,19 @@
-const sheet = require("../services/sheet.service");
+const categoryService = require("../services/category.service");
 
-// ======================
 // GET ALL
-// ======================
-
 exports.getCategories = async (req, res) => {
     try {
 
-        let rows = await sheet.getRows("Categories");
+        const data = await categoryService.getAll(req.query.type);
 
-        const { typeId } = req.query;
-
-        if (typeId) {
-            rows = rows.filter(r => r.typeId == typeId);
-        }
-
-        res.json(rows);
+        res.json({
+            success: true,
+            data
+        });
 
     } catch (err) {
+
+        console.error(err);
 
         res.status(500).json({
             success: false,
@@ -27,31 +23,24 @@ exports.getCategories = async (req, res) => {
     }
 };
 
-// ======================
 // GET ONE
-// ======================
-
 exports.getCategory = async (req, res) => {
-
     try {
 
-        const category = await sheet.findById(
-            "Categories",
-            req.params.id
-        );
+        const data = await categoryService.getById(req.params.id);
 
-        if (!category) {
-
+        if (!data) {
             return res.status(404).json({
                 success: false,
-                message: "Category not found"
+                message: "ไม่พบข้อมูล"
             });
-
         }
 
-        res.json(category);
+        res.json(data);
 
     } catch (err) {
+
+        console.error(err);
 
         res.status(500).json({
             success: false,
@@ -59,173 +48,67 @@ exports.getCategory = async (req, res) => {
         });
 
     }
-
 };
 
-// ======================
 // CREATE
-// ======================
-
 exports.createCategory = async (req, res) => {
-
     try {
 
-        const { typeId, name } = req.body;
+        const result = await categoryService.create(req.body);
 
-        if (!typeId || !name) {
-
-            return res.status(400).json({
-                success: false,
-                message: "typeId and name are required"
-            });
-
-        }
-
-        const rows = await sheet.getRows("Categories");
-
-        const duplicate = rows.find(r =>
-            r.typeId == typeId &&
-            r.name.trim().toLowerCase() == name.trim().toLowerCase()
-        );
-
-        if (duplicate) {
-
-            return res.status(409).json({
-                success: false,
-                message: "Category already exists"
-            });
-
-        }
-
-        const id = await sheet.nextId("Categories");
-
-        await sheet.appendRow("Categories", [
-
-            id,
-
-            typeId,
-
-            name
-
-        ]);
-
-        res.status(201).json({
-
-            success: true,
-
-            message: "Create success"
-
-        });
+        res.status(201).json(result);
 
     } catch (err) {
 
-        res.status(500).json({
+        console.error(err);
 
+        res.status(400).json({
             success: false,
-
             message: err.message
-
         });
 
     }
-
 };
 
-// ======================
 // UPDATE
-// ======================
-
 exports.updateCategory = async (req, res) => {
-
     try {
 
-        const { id } = req.params;
-
-        const { typeId, name } = req.body;
-
-        const rows = await sheet.getRows("Categories");
-
-        const duplicate = rows.find(r =>
-            r.id != id &&
-            r.typeId == typeId &&
-            r.name.trim().toLowerCase() == name.trim().toLowerCase()
+        const result = await categoryService.update(
+            req.params.id,
+            req.body
         );
 
-        if (duplicate) {
-
-            return res.status(409).json({
-                success: false,
-                message: "Category already exists"
-            });
-
-        }
-
-        const ok = await sheet.updateRow(
-            "Categories",
-            id,
-            {
-                id,
-                typeId,
-                name
-            }
-        );
-
-        if (!ok) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Category not found"
-            });
-
-        }
-
-        res.json({
-            success: true,
-            message: "Update success"
-        });
+        res.json(result);
 
     } catch (err) {
 
-        res.status(500).json({
+        console.error(err);
+
+        res.status(400).json({
             success: false,
             message: err.message
         });
 
     }
-
 };
 
-// ======================
 // DELETE
-// ======================
-
 exports.deleteCategory = async (req, res) => {
-
     try {
 
-        await sheet.deleteRow(
-            "Categories",
-            req.params.id
-        );
+        const result = await categoryService.remove(req.params.id);
 
-        res.json({
-
-            success: true,
-
-            message: "Delete success"
-
-        });
+        res.json(result);
 
     } catch (err) {
 
-        res.status(500).json({
+        console.error(err);
 
+        res.status(400).json({
             success: false,
-
             message: err.message
-
         });
 
     }
-
 };

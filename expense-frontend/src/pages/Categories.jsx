@@ -1,153 +1,152 @@
 import { useEffect, useState } from "react";
+import { FaPlus, FaList } from "react-icons/fa";
 
-import {
-    getCategories
-} from "../services/category.service";
-
-import {
-    getTypes
-} from "../services/type.service";
+import { getCategories } from "../services/category.service";
+import { getTypes } from "../services/type.service";
 
 function Categories() {
+  const [types, setTypes] = useState([]);
+  const [typeId, setTypeId] = useState("");
+  const [categories, setCategories] = useState([]);
 
-    const [types, setTypes] = useState([]);
+  useEffect(() => {
+    loadTypes();
+  }, []);
 
-    const [typeId, setTypeId] = useState("");
+  const loadTypes = async () => {
+    const data = await getTypes();
+    setTypes(data);
+  };
 
-    const [categories, setCategories] = useState([]);
+  const loadCategory = async (id) => {
+    const data = await getCategories(id);
+    setCategories(data);
+  };
 
-    useEffect(() => {
+  return (
+    <div className="space-y-6">
 
-        loadTypes();
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
 
-    }, []);
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            หมวดหมู่
+          </h1>
 
-    const loadTypes = async () => {
+          <p className="text-gray-500 mt-1">
+            จัดการหมวดหมู่ของรายรับและรายจ่าย
+          </p>
+        </div>
 
-        const data = await getTypes();
+        <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl shadow">
+          <FaPlus />
+          เพิ่มหมวดหมู่
+        </button>
 
-        setTypes(data);
+      </div>
 
-    };
+      {/* Filter */}
+      <div className="bg-white rounded-2xl shadow p-6">
 
-    const loadCategory = async (id) => {
+        <label className="block font-medium mb-2">
+          ประเภท
+        </label>
 
-        const data = await getCategories(id);
+        <select
+          value={typeId}
+          onChange={(e) => {
+            setTypeId(e.target.value);
+            loadCategory(e.target.value);
+          }}
+          className="w-full md:w-80 border rounded-xl p-3 focus:ring-2 focus:ring-green-500 outline-none"
+        >
+          <option value="">เลือกประเภท</option>
 
-        setCategories(data);
-
-    };
-
-    return (
-
-        <div className="p-6">
-
-            <h1 className="text-3xl font-bold mb-6">
-
-                หมวดหมู่
-
-            </h1>
-
-            <select
-
-                className="border rounded p-2 mb-5"
-
-                value={typeId}
-
-                onChange={(e) => {
-
-                    setTypeId(e.target.value);
-
-                    loadCategory(e.target.value);
-
-                }}
-
+          {types.map((type) => (
+            <option
+              key={type.id}
+              value={type.id}
             >
+              {type.typeName}
+            </option>
+          ))}
+        </select>
 
-                <option value="">
+      </div>
 
-                    เลือกประเภท
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow overflow-hidden">
 
-                </option>
+        <div className="flex justify-between items-center px-6 py-4 border-b">
 
-                {
+          <h2 className="font-semibold flex items-center gap-2">
+            <FaList />
+            รายการหมวดหมู่
+          </h2>
 
-                    types.map(type => (
-
-                        <option
-
-                            key={type.id}
-
-                            value={type.id}
-
-                        >
-
-                            {type.typeName}
-
-                        </option>
-
-                    ))
-
-                }
-
-            </select>
-
-            <table className="w-full border">
-
-                <thead>
-
-                    <tr>
-
-                        <th className="border p-3">
-
-                            ID
-
-                        </th>
-
-                        <th className="border p-3">
-
-                            หมวดหมู่
-
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    {
-
-                        categories.map(category => (
-
-                            <tr key={category.id}>
-
-                                <td className="border p-3">
-
-                                    {category.id}
-
-                                </td>
-
-                                <td className="border p-3">
-
-                                    {category.name}
-
-                                </td>
-
-                            </tr>
-
-                        ))
-
-                    }
-
-                </tbody>
-
-            </table>
+          <span className="text-sm text-gray-500">
+            ทั้งหมด {categories.length} รายการ
+          </span>
 
         </div>
 
-    );
+        <div className="overflow-x-auto">
 
+          <table className="min-w-full">
+
+            <thead className="bg-gray-100">
+
+              <tr>
+                <th className="px-6 py-4 text-left">
+                  ID
+                </th>
+
+                <th className="px-6 py-4 text-left">
+                  ชื่อหมวดหมู่
+                </th>
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <tr
+                    key={category.id}
+                    className="border-t hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4">
+                      {category.id}
+                    </td>
+
+                    <td className="px-6 py-4 font-medium">
+                      {category.name}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="py-10 text-center text-gray-400"
+                  >
+                    ยังไม่มีข้อมูลหมวดหมู่
+                  </td>
+                </tr>
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }
 
 export default Categories;

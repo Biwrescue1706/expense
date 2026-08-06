@@ -3,25 +3,31 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "expense-secret";
 
 module.exports = (req, res, next) => {
-    try {
 
+    let token = null;
+
+    // Cookie
+    if (req.cookies?.token) {
+        token = req.cookies.token;
+    }
+
+    // Authorization Header
+    if (!token && req.headers.authorization) {
         const authHeader = req.headers.authorization;
 
-        if (!authHeader) {
-            return res.status(401).json({
-                success: false,
-                message: "No token provided",
-            });
+        if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.split(" ")[1];
         }
+    }
 
-        const token = authHeader.split(" ")[1];
+    if (!token) {
+        return res.status(401).json({
+            success: false,
+            message: "กรุณาเข้าสู่ระบบ"
+        });
+    }
 
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid token",
-            });
-        }
+    try {
 
         const decoded = jwt.verify(token, JWT_SECRET);
 
@@ -33,8 +39,9 @@ module.exports = (req, res, next) => {
 
         return res.status(401).json({
             success: false,
-            message: "Unauthorized",
+            message: "Token หมดอายุ หรือไม่ถูกต้อง"
         });
 
     }
+
 };

@@ -1,67 +1,118 @@
 import { useEffect, useState } from "react";
-import {
-    getTypes
-} from "../services/type.service";
+import { FaPlus, FaTags } from "react-icons/fa";
+import { getTypes } from "../services/type.service";
 
 function Types() {
+  const [types, setTypes] = useState([]);
 
-    const [types, setTypes] = useState([]);
+  useEffect(() => {
+    loadTypes();
+  }, []);
 
-    useEffect(() => {
-        loadTypes();
-    }, []);
+  const loadTypes = async () => {
+    const data = await getTypes();
+    setTypes(data);
+  };
 
-    const loadTypes = async () => {
-        const data = await getTypes();
-        setTypes(data);
-    };
+  return (
+    <div className="space-y-6">
 
-    return (
-        <div className="p-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-            <h1 className="text-3xl font-bold mb-6">
-                ประเภท
-            </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            ประเภท
+          </h1>
 
-            <table className="w-full border">
+          <p className="text-gray-500 mt-1">
+            จัดการประเภทของรายการรายรับและรายจ่าย
+          </p>
+        </div>
 
-                <thead className="bg-gray-100">
+        <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl shadow transition">
+          <FaPlus />
+          เพิ่มประเภท
+        </button>
 
-                    <tr>
+      </div>
 
-                        <th className="border p-3">ID</th>
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow overflow-hidden">
 
-                        <th className="border p-3">ประเภท</th>
+        <div className="flex justify-between items-center px-6 py-4 border-b">
 
-                    </tr>
+          <h2 className="flex items-center gap-2 font-semibold text-gray-700">
+            <FaTags className="text-green-600" />
+            รายการประเภท
+          </h2>
 
-                </thead>
-
-                <tbody>
-
-                    {types.map(type => (
-
-                        <tr key={type.id}>
-
-                            <td className="border p-3">
-                                {type.id}
-                            </td>
-
-                            <td className="border p-3">
-                                {type.typeName}
-                            </td>
-
-                        </tr>
-
-                    ))}
-
-                </tbody>
-
-            </table>
+          <span className="text-sm text-gray-500">
+            ทั้งหมด {types.length} รายการ
+          </span>
 
         </div>
-    );
 
+        <div className="overflow-x-auto">
+
+          <table className="min-w-full">
+
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-left">ID</th>
+                <th className="px-6 py-4 text-left">ประเภท</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {types.length > 0 ? (
+                types.map((type) => (
+                  <tr
+                    key={type.id}
+                    className="border-t hover:bg-gray-50 transition"
+                  >
+                    <td className="px-6 py-4">
+                      {type.id}
+                    </td>
+
+                    <td className="px-6 py-4">
+
+                      <span
+                        className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                          type.name === "รายรับ"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {type.name}
+                      </span>
+
+                    </td>
+
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="py-10 text-center text-gray-400"
+                  >
+                    ยังไม่มีข้อมูลประเภท
+                  </td>
+                </tr>
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }
 
 export default Types;
