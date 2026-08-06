@@ -75,6 +75,7 @@ exports.register = async (data) => {
 };
 
 //Login
+// Login
 exports.login = async (data) => {
 
     const { email, password } = data;
@@ -82,27 +83,38 @@ exports.login = async (data) => {
     const users = await sheet.getRows("Users");
     const rows = users.slice(1);
 
+    // ค้นหาจาก Email
     const user = rows.find(
-        row => row[2] && row[2].toLowerCase() === email.toLowerCase()
+        row =>
+            row[3] &&
+            row[3].toLowerCase() === email.toLowerCase()
     );
 
     if (!user) {
         throw new Error("Email หรือ Password ไม่ถูกต้อง");
     }
 
-    const ok = await bcrypt.compare(password, user[3]);
+    // ตรวจสอบ Password
+    const ok = await bcrypt.compare(password, user[4]);
 
     if (!ok) {
         throw new Error("Email หรือ Password ไม่ถูกต้อง");
     }
 
+    // สร้าง Token
     const token = jwt.sign(
         {
             id: user[0],
             username: user[1],
-            email: user[2],
-            role: user[4],
-            fullName: user[8]
+            name: user[2],
+            email: user[3],
+            role: user[5],
+            prefix: user[6],
+            firstName: user[7],
+            lastName: user[8],
+            fullName: user[9],
+            phone: user[10],
+            citizenId: user[11]
         },
         JWT_SECRET,
         {
@@ -116,10 +128,15 @@ exports.login = async (data) => {
         user: {
             id: user[0],
             username: user[1],
-            email: user[2],
-            role: user[4],
-            fullName: user[8],
-            phone: user[9]
+            name: user[2],
+            email: user[3],
+            role: user[5],
+            prefix: user[6],
+            firstName: user[7],
+            lastName: user[8],
+            fullName: user[9],
+            phone: user[10],
+            citizenId: user[11]
         }
     };
 
