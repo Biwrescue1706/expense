@@ -1,65 +1,56 @@
 const crypto = require("crypto");
 const sheet = require("./sheet.service");
 
-// =======================
+// =====================
 // GET ALL
-// =======================
-exports.getAll = async (type) => {
-
-    let rows = await sheet.getRows("Categories");
-
-    rows = rows.slice(1).map(row => ({
-        id: row[0],
-        type: row[1],
-        name: row[2],
-    }));
-
-    if (type) {
-        rows = rows.filter(
-            item => item.type === type
-        );
-    }
-
-    return rows;
-
-};
-
-// =======================
-// GET ONE
-// =======================
-exports.getById = async (id) => {
-
-    const rows = await sheet.getRows("Categories");
-
-    const list = rows.slice(1).map(row => ({
-        id: row[0],
-        type: row[1],
-        name: row[2],
-    }));
-
-    return list.find(item => item.id === id);
-
-};
-
-// =======================
-// CREATE
-// =======================
-exports.create = async (data) => {
-
-    const { type, name } = data;
-
-    if (!type || !name) {
-        throw new Error("กรุณากรอกข้อมูลให้ครบ");
-    }
+// =====================
+exports.getAll = async (typeId) => {
 
     const rows = (await sheet.getRows("Categories")).slice(1);
 
-    const duplicate = rows.find(
-        row =>
-            row[1] &&
-            row[2] &&
-            row[1].trim().toLowerCase() === type.trim().toLowerCase() &&
-            row[2].trim().toLowerCase() === name.trim().toLowerCase()
+    let data = rows.map(row => ({
+        id: row[0],
+        typeId: row[1],
+        name: row[2],
+    }));
+
+    if (typeId) {
+        data = data.filter(c => c.typeId === typeId);
+    }
+
+    return data;
+};
+
+// =====================
+// CREATE
+// =====================
+exports.create = async (data) => {
+
+    const { typeId, name } = data;
+
+    if (!typeId || !name) {
+        throw new Error("กรุณากรอกข้อมูลให้ครบ");
+    }
+
+    // ตรวจสอบว่า type มีจริง
+    const types = (await sheet.getRows("Types")).slice(1);
+
+    const existType = types.find(
+        t => t[0] === typeId
+    );
+
+    if (!existType) {
+        throw new Error("ไม่พบประเภท");
+    }
+
+    // ตรวจสอบหมวดหมู่ซ้ำ
+    const categories = (await sheet.getRows("Categories")).slice(1);
+
+    const duplicate = categories.find(
+        c =>
+            c[1] === typeId &&
+            c[2].trim().toLowerCase() ===
+            name.trim().toLowerCase()
     );
 
     if (duplicate) {
@@ -68,61 +59,80 @@ exports.create = async (data) => {
 
     await sheet.appendRow("Categories", [
         crypto.randomUUID(),
-        type,
-        name
+        typeId,
+        name,
     ]);
 
     return {
         success: true,
-        message: "เพิ่มหมวดหมู่สำเร็จ"
+        message: "เพิ่มหมวดหมู่สำเร็จ",
     };
-
 };
 
-// =======================
+// =====================
 // UPDATE
-// =======================
+// =====================
 exports.update = async (id, data) => {
 
-    const { type, name } = data;
+    const { typeId, name } = data;
 
-    const rows = (await sheet.getRows("Categories")).slice(1);
+    const rows = await sheet.getRows("Categories");
 
-    const duplicate = rows.find(
-        row =>
-            row[0] !== id &&
-            row[1].trim().toLowerCase() === type.trim().toLowerCase() &&
-            row[2].trim().toLowerCase() === name.trim().toLowerCase()
+    const headers = rows[0];
+    const list = rows.slice(1);
+
+    const index = list.findIndex(
+        r => r[0] === id
+    );
+
+    if (index === -1) {
+        throw new Error("ไม่พบข้อมูล");
+    }
+
+    const duplicate = list.find(
+        r =>
+            r[0] !== id &&
+            r[1] === typeId &&
+            r[2].trim().toLowerCase() ===
+            name.trim().toLowerCase()
     );
 
     if (duplicate) {
         throw new Error("หมวดหมู่นี้มีอยู่แล้ว");
     }
 
-    const ok = await sheet.updateRow(
-        "Categories",
-        id,
-        {
-            id,
-            type,
-            name,
-        }
-    );
+    const newRow = headers.map(h => {
 
-    if (!ok) {
-        throw new Error("ไม่พบข้อมูล");
-    }
+        switch (h) {
+            case "id":
+                return id;
+            case "typeId":
+                return typeId;
+            case "name":
+                return name;
+            default:
+                return "";
+        }
+
+    });
+
+    rows[index + 1] = newRow;
+
+    await sheet.updateRow("Categories", id, {
+        id,
+        typeId,
+        name,
+    });
 
     return {
         success: true,
-        message: "แก้ไขสำเร็จ"
+        message: "แก้ไขสำเร็จ",
     };
-
 };
 
-// =======================
+// =====================
 // DELETE
-// =======================
+// =====================
 exports.remove = async (id) => {
 
     const ok = await sheet.deleteRow(
@@ -136,7 +146,6 @@ exports.remove = async (id) => {
 
     return {
         success: true,
-        message: "ลบสำเร็จ"
+        message: "ลบสำเร็จ",
     };
-
 };
