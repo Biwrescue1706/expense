@@ -42,36 +42,23 @@ const menus = [
 ];
 
 function Sidebar({ open, setOpen, user }) {
-
   const navigate = useNavigate();
 
-  // =========================
   // Logout
-  // =========================
 
   const handleLogout = async () => {
-
     try {
-
       await api.post("/auth/logout");
-
     } catch (err) {
-
       console.error(err);
-
     } finally {
-
       navigate("/", {
         replace: true,
       });
-
     }
-
   };
 
-  // =========================
   // ชื่อผู้ใช้งาน
-  // =========================
 
   const displayName =
     user?.fullName ||
@@ -79,46 +66,25 @@ function Sidebar({ open, setOpen, user }) {
     user?.username ||
     "ผู้ใช้งาน";
 
-  // =========================
   // Role
-  // =========================
+  const roleName = user?.role === "admin" ? "ผู้ดูแลระบบ" : "สมาชิก";
 
-  const roleName =
-    user?.role === "admin"
-      ? "ผู้ดูแลระบบ"
-      : "สมาชิก";
-
-  // =========================
   // ตัวอักษร Avatar
-  // =========================
-
   const avatarText =
-    user?.firstName?.charAt(0) ||
-    user?.username?.charAt(0) ||
-    "U";
+    user?.firstName?.charAt(0) || user?.username?.charAt(0) || "U";
 
   return (
-
     <>
-
-      {/* =========================
-          Overlay Mobile
-      ========================= */}
-
+      {/* Overlay Mobile */}
       {open && (
-
         <div
           className="fixed inset-0 bg-black/40 z-30 lg:hidden"
           onClick={() => setOpen(false)}
         />
-
       )}
-
-
       {/* =========================
           Sidebar
       ========================= */}
-
       <aside
         className={`
           fixed lg:static
@@ -134,35 +100,21 @@ function Sidebar({ open, setOpen, user }) {
           flex flex-col
         `}
       >
-
-        {/* =========================
-            Logo
-        ========================= */}
-
+        {/*  Logo */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-700">
-
           <div className="flex items-center gap-3">
-
             <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
-
               <FaWallet />
-
             </div>
 
             <div>
-
               <h2 className="text-base font-bold text-white">
-                Expense Tracker
+                บันทึกค่าใช้จ่าย
               </h2>
 
-              <p className="text-xs text-slate-400">
-                Management System
-              </p>
-
+              <p className="text-xs text-slate-400">รายรับรายจ่าย</p>
             </div>
-
           </div>
-
 
           {/* Close Mobile */}
 
@@ -170,74 +122,46 @@ function Sidebar({ open, setOpen, user }) {
             onClick={() => setOpen(false)}
             className="lg:hidden text-white hover:text-red-400 transition"
           >
-
             <FaTimes size={20} />
-
           </button>
-
         </div>
-
-
         {/* =========================
             User Profile
             อยู่ก่อนเมนูหลัก
         ========================= */}
-
         <div className="px-4 pt-5">
-
-          <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
-
+          <div className="bg-slate-100 rounded-xl p-3 flex items-center gap-3">
             {/* Avatar */}
 
             <div className="w-10 h-10 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center font-bold text-white uppercase">
-
               {avatarText}
-
             </div>
-
 
             {/* User Information */}
 
             <div className="min-w-0">
-
-              <p className="text-sm font-semibold text-white truncate">
-
+              <p className="text-sm text-black font-semibold truncate">
                 {displayName}
-
               </p>
 
-              <p className="text-xs text-slate-400 truncate">
-
-                {roleName}
-
+              <p className="text-sm text-slate-400 font-semibold truncate">{roleName}</p>
+              <p className="text-sm text-green-600 font-semibold truncate">
+                @{user?.username || "-"}
               </p>
-
             </div>
-
           </div>
-
         </div>
-
-
         {/* =========================
             Menu Title
         ========================= */}
-
         <div className="px-5 pt-5 pb-2 text-xs uppercase tracking-wider text-slate-500">
-
           เมนูหลัก
-
         </div>
-
-
         {/* =========================
             Menu
         ========================= */}
-
         <nav className="flex-1 px-3 space-y-2 overflow-y-auto">
-
           {menus.map((menu) => (
-
             <NavLink
               key={menu.path}
               to={menu.path}
@@ -257,26 +181,16 @@ function Sidebar({ open, setOpen, user }) {
                 `
               }
             >
-
               {menu.icon}
 
-              <span>
-                {menu.name}
-              </span>
-
+              <span>{menu.name}</span>
             </NavLink>
-
           ))}
-
         </nav>
-
-
         {/* =========================
             Footer
         ========================= */}
-
         <div className="border-t border-slate-700 p-5">
-
           {/* Logout */}
 
           <button
@@ -293,32 +207,20 @@ function Sidebar({ open, setOpen, user }) {
               transition
             "
           >
-
             <FaSignOutAlt />
-
             ออกจากระบบ
-
           </button>
-
 
           {/* Version */}
 
           <div className="mt-4 text-center text-xs text-slate-500">
-
             Expense Tracker
-
             <br />
-
             Version 1.0.0
-
           </div>
-
         </div>
-
       </aside>
-
     </>
-
   );
 }
 

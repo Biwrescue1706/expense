@@ -1,6 +1,7 @@
 //Frontend/src/utils/alert.js
 import Swal from "sweetalert2";
 
+
 export const successAlert = (text) => {
   Swal.fire({
     icon: "success",

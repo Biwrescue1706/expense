@@ -1,9 +1,7 @@
 const crypto = require("crypto");
 const sheet = require("./sheet.service");
 
-// =====================
 // GET ALL
-// =====================
 exports.getAll = async (typeId) => {
 
     const rows = (await sheet.getRows("Categories")).slice(1);
@@ -12,6 +10,8 @@ exports.getAll = async (typeId) => {
         id: row[0],
         typeId: row[1],
         name: row[2],
+        createdAt: row[3],
+        updatedAt: row[4],
     }));
 
     if (typeId) {
@@ -21,9 +21,8 @@ exports.getAll = async (typeId) => {
     return data;
 };
 
-// =====================
+
 // CREATE
-// =====================
 exports.create = async (data) => {
 
     const { typeId, name } = data;
@@ -32,7 +31,7 @@ exports.create = async (data) => {
         throw new Error("กรุณากรอกข้อมูลให้ครบ");
     }
 
-    // ตรวจสอบว่า type มีจริง
+    // ตรวจสอบว่า Type มีจริง
     const types = (await sheet.getRows("Types")).slice(1);
 
     const existType = types.find(
@@ -57,10 +56,15 @@ exports.create = async (data) => {
         throw new Error("หมวดหมู่นี้มีอยู่แล้ว");
     }
 
+    // เวลาปัจจุบัน
+    const now = new Date().toISOString();
+
     await sheet.appendRow("Categories", [
         crypto.randomUUID(),
         typeId,
-        name,
+        name.trim(),
+        now,
+        "",
     ]);
 
     return {
@@ -69,16 +73,18 @@ exports.create = async (data) => {
     };
 };
 
-// =====================
+
 // UPDATE
-// =====================
 exports.update = async (id, data) => {
 
     const { typeId, name } = data;
 
+    if (!typeId || !name) {
+        throw new Error("กรุณากรอกข้อมูลให้ครบ");
+    }
+
     const rows = await sheet.getRows("Categories");
 
-    const headers = rows[0];
     const list = rows.slice(1);
 
     const index = list.findIndex(
@@ -89,6 +95,10 @@ exports.update = async (id, data) => {
         throw new Error("ไม่พบข้อมูล");
     }
 
+    // ข้อมูลเดิม
+    const oldRow = list[index];
+
+    // ตรวจสอบหมวดหมู่ซ้ำ
     const duplicate = list.find(
         r =>
             r[0] !== id &&
@@ -101,27 +111,18 @@ exports.update = async (id, data) => {
         throw new Error("หมวดหมู่นี้มีอยู่แล้ว");
     }
 
-    const newRow = headers.map(h => {
+    // เก็บ createdAt เดิม
+    const createdAt = oldRow[3];
 
-        switch (h) {
-            case "id":
-                return id;
-            case "typeId":
-                return typeId;
-            case "name":
-                return name;
-            default:
-                return "";
-        }
-
-    });
-
-    rows[index + 1] = newRow;
+    // สร้าง updatedAt ใหม่
+    const updatedAt = new Date().toISOString();
 
     await sheet.updateRow("Categories", id, {
         id,
         typeId,
-        name,
+        name: name.trim(),
+        createdAt,
+        updatedAt,
     });
 
     return {
@@ -130,9 +131,8 @@ exports.update = async (id, data) => {
     };
 };
 
-// =====================
+
 // DELETE
-// =====================
 exports.remove = async (id) => {
 
     const ok = await sheet.deleteRow(

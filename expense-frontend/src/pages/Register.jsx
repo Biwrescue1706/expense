@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaPlus, FaUsers, FaSearch, FaEdit, FaTrash } from "react-icons/fa";
-
-import Swal from "sweetalert2";
-
+import { successAlert , errorAlert } from "../utils/alert";
 import RegisterModal from "../components/RegisterModal";
-
 import { getUsers, deleteUser } from "../services/user.service";
 
 function Register() {
@@ -42,46 +39,29 @@ function Register() {
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: "ยืนยันการลบ",
+    const result = await confirmDelete();
 
-      text: "ต้องการลบสมาชิกนี้ใช่หรือไม่",
+    if (!result.isConfirmed) return;
 
-      icon: "warning",
+    try {
+      await deleteUser(id);
+      successAlert("ลบสมาชิกสำเร็จ");
 
-      showCancelButton: true,
-
-      confirmButtonText: "ลบ",
-
-      cancelButtonText: "ยกเลิก",
-
-      confirmButtonColor: "#dc2626",
-    });
+      loadUsers();
+    } catch (err) {
+      errorAlert(err.response?.data?.message);
+    }
 
     if (!result.isConfirmed) return;
 
     try {
       await deleteUser(id);
 
-      Swal.fire({
-        icon: "success",
-
-        title: "ลบสำเร็จ",
-
-        timer: 1500,
-
-        showConfirmButton: false,
-      });
+      successAlert("ลบสมาชิกสำเร็จ");
 
       loadUsers();
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-
-        title: "ผิดพลาด",
-
-        text: err.response?.data?.message,
-      });
+      errorAlert(err.response?.data?.message || "ไม่สามารถลบสมาชิกได้");
     }
   };
 
@@ -149,14 +129,11 @@ function Register() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-6 py-4 text-left">ชื่อ</th>
-
                 <th className="px-6 py-4 text-left">Username</th>
-
                 <th className="px-6 py-4 text-left">Email</th>
-
                 <th className="px-6 py-4 text-center">สิทธิ์</th>
-
-                <th className="px-6 py-4 text-center">จัดการ</th>
+                <th className="px-6 py-4 text-center">แก้ไข</th>
+                <th className="px-6 py-4 text-center">ลบ</th>
               </tr>
             </thead>
 
@@ -183,21 +160,20 @@ function Register() {
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-lg"
-                        >
-                          <FaEdit />
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-lg"
+                      >
+                        <FaEdit />
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg"
+                      >
+                        <FaTrash />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -223,12 +199,7 @@ function Register() {
         onSuccess={() => {
           loadUsers();
 
-          Swal.fire({
-            icon: "success",
-            title: editUser ? "แก้ไขสมาชิกสำเร็จ" : "เพิ่มสมาชิกสำเร็จ",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+          successAlert(editUser ? "แก้ไขสมาชิกสำเร็จ" : "เพิ่มสมาชิกสำเร็จ");
         }}
       />
     </div>

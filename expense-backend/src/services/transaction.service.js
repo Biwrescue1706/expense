@@ -178,7 +178,6 @@ exports.create = async (userId, data) => {
         expense,
         balance,
         note || "",
-        now,
         now
 
     ]);
@@ -297,7 +296,6 @@ exports.update = async (userId, id, data) => {
             expense: newRow[6],
             balance: newRow[7],
             note: newRow[8],
-            createdAt: newRow[9],
             updateAt: newRow[10]
         }
     );

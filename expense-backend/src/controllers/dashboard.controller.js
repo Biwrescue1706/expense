@@ -1,4 +1,4 @@
-// backend/src/controllers/dashboard.controller.js
+// expense-backend/src/controllers/dashboard.controller.js
 
 const dashboardService = require("../services/dashboard.service");
 
@@ -6,20 +6,31 @@ exports.getDashboard = async (req, res) => {
 
     try {
 
+        if (!req.user?.id) {
+
+            return res.status(401).json({
+                success: false,
+                message: "กรุณาเข้าสู่ระบบ"
+            });
+
+        }
+
         const userId = req.user.id;
 
-        const data = await dashboardService.getDashboard(userId);
+        const data =
+            await dashboardService.getDashboard(userId);
 
-        res.json({
+        return res.json({
             success: true,
             data
         });
 
     } catch (err) {
 
+        console.error("===== DASHBOARD ERROR =====");
         console.error(err);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: err.message
         });

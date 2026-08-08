@@ -24,9 +24,7 @@ function Transactions() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
 
-  // =========================
   // โหลดรายการ
-  // =========================
 
   useEffect(() => {
     loadTransactions();
@@ -48,20 +46,12 @@ function Transactions() {
     }
   };
 
-  // =========================
   // แปลงวันที่เป็นไทย
-  // 2026-08-08
-  // =>
-  // 8 ส.ค. 2569
-  // =========================
-
   const formatThaiDate = (date) => {
     if (!date) {
       return "-";
     }
-
     const [year, month, day] = date.split("-").map(Number);
-
     const months = [
       "ม.ค.",
       "ก.พ.",
@@ -76,62 +66,40 @@ function Transactions() {
       "พ.ย.",
       "ธ.ค.",
     ];
-
     if (!year || !month || !day || !months[month - 1]) {
       return date;
     }
-
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
 
-  // =========================
   // เพิ่มรายการ
-  // =========================
-
   const handleAdd = () => {
     setEditTransaction(null);
-
     setModalOpen(true);
   };
 
-  // =========================
   // แก้ไขรายการ
-  // =========================
-
   const handleEdit = (transaction) => {
     setEditTransaction(transaction);
-
     setModalOpen(true);
   };
 
-  // =========================
   // ลบรายการ
-  // =========================
-
   const handleDelete = async (id) => {
     const result = await confirmDelete();
-
     if (!result.isConfirmed) {
       return;
     }
-
     try {
       await deleteTransaction(id);
-
       successAlert("ลบรายการสำเร็จ");
-
       await loadTransactions();
     } catch (err) {
-      console.error(err);
-
       errorAlert(err.response?.data?.message || "ไม่สามารถลบรายการได้");
     }
   };
 
-  // =========================
   // หลังบันทึก
-  // =========================
-
   const handleSuccess = async () => {
     await loadTransactions();
   };
@@ -161,10 +129,8 @@ function Transactions() {
       </div>
 
       {/* Table */}
-
       <div className="bg-white rounded-2xl shadow overflow-hidden">
         {/* Table Header */}
-
         <div className="flex justify-between items-center px-6 py-4 border-b">
           <h2 className="flex items-center gap-2 font-semibold text-gray-700">
             <FaList className="text-green-600" />
@@ -177,7 +143,6 @@ function Transactions() {
         </div>
 
         {/* Loading */}
-
         {loading ? (
           <div className="py-16 text-center text-gray-400">
             กำลังโหลดข้อมูล...
@@ -227,85 +192,81 @@ function Transactions() {
                   </th>
 
                   <th className="px-6 py-4 text-center whitespace-nowrap">
-                    จัดการ
+                    แก้ไข
+                  </th>
+
+                  <th className="px-6 py-4 text-center whitespace-nowrap">
+                    ลบ
                   </th>
                 </tr>
               </thead>
 
-              <tbody>
+              <tbody className="text-center items-center">
                 {transactions.map((transaction) => (
                   <tr
                     key={transaction.id}
                     className="border-t hover:bg-gray-50 transition"
                   >
                     {/* วันที่ */}
-
                     <td className="px-6 py-4 whitespace-nowrap">
                       {formatThaiDate(transaction.date)}
                     </td>
 
                     {/* ประเภท */}
-
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center items-center">
                       {transaction.typeName === "รายรับ" ? (
                         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
                           <FaArrowUp />
-
                           {transaction.typeName}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium">
                           <FaArrowDown />
-
                           {transaction.typeName || "รายจ่าย"}
                         </span>
                       )}
                     </td>
 
                     {/* หมวดหมู่ */}
-
-                    <td className="px-6 py-4 font-medium">
+                    <td className="px-6 py-4 font-medium text-center items-center">
                       {transaction.categoryName || "-"}
                     </td>
 
                     {/* รายรับ */}
 
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center items-center">
                       {Number(transaction.income) > 0 ? (
                         <span className="font-semibold text-green-600">
                           +{Number(transaction.income).toLocaleString()}
                         </span>
                       ) : (
-                        <span className="text-gray-300">-</span>
+                        <span className="text-black">-</span>
                       )}
                     </td>
 
                     {/* รายจ่าย */}
 
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center items-center">
                       {Number(transaction.expense) > 0 ? (
                         <span className="font-semibold text-red-600">
                           -{Number(transaction.expense).toLocaleString()}
                         </span>
                       ) : (
-                        <span className="text-gray-300">-</span>
+                        <span className="text-black">-</span>
                       )}
                     </td>
 
                     {/* คงเหลือ */}
-
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {Number(transaction.balance || 0).toLocaleString()} บาท
+                    <td className="px-6 py-4 text-center items-center font-semibold">
+                      {Number(transaction.balance || 0).toLocaleString()}
                     </td>
 
                     {/* หมายเหตุ */}
-
-                    <td className="px-6 py-4 text-gray-600 max-w-xs truncate">
+                    <td className="px-6 py-4 text-black text-center items-center max-w-xs truncate">
                       {transaction.note || "-"}
                     </td>
 
                     {/* จัดการ */}
-
                     <td className="px-6 py-4">
                       <div className="flex justify-center gap-2">
                         <button
@@ -315,7 +276,10 @@ function Transactions() {
                         >
                           <FaEdit />
                         </button>
-
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleDelete(transaction.id)}
                           className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
