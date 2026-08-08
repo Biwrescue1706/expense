@@ -3,26 +3,30 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 
 export default function ProtectedRoute() {
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
 
-    const [loading, setLoading] = useState(true);
-    const [authenticated, setAuthenticated] = useState(false);
+  useEffect(() => {
+    api
+      .get("/auth/profile")
+      .then(() => {
+        setAuthenticated(true);
+      })
+      .catch(() => {
+        setAuthenticated(false);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
-    useEffect(() => {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        กำลังตรวจสอบการเข้าสู่ระบบ...
+      </div>
+    );
+  }
 
-        api.get("/auth/profile")
-            .then(() => {
-                setAuthenticated(true);
-            })
-            .catch(() => {
-                setAuthenticated(false);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-
-    }, []);
-
-    if (loading) return <div>Loading...</div>;
-
-    return authenticated ? <Outlet /> : <Navigate to="/" replace />;
+  return authenticated ? <Outlet /> : <Navigate to="/" replace />;
 }

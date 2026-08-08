@@ -1,20 +1,30 @@
 const router = require("express").Router();
 
-const controller = require("../controllers/transaction.controller");
+const transactionController = require("../controllers/transaction.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
-// ดึงรายการทั้งหมด
-router.get("/", controller.getTransactions);
+router.get(
+    "/",
+    authMiddleware,
+    transactionController.getTransactions
+);
 
-// ดึงรายการตาม id
-router.get("/:id", controller.getTransaction);
+router.post(
+    "/",
+    authMiddleware,
+    transactionController.createTransaction
+);
 
-// เพิ่มรายการ
-router.post("/", controller.createTransaction);
+router.put(
+    "/:id",
+    authMiddleware,
+    transactionController.updateTransaction
+);
 
-// แก้ไขรายการ
-router.put("/:id", controller.updateTransaction);
-
-// ลบรายการ
-router.delete("/:id", controller.deleteTransaction);
+router.delete(
+    "/:id",
+    authMiddleware,
+    transactionController.deleteTransaction
+);
 
 module.exports = router;

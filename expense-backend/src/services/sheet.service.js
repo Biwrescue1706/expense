@@ -2,8 +2,9 @@ const sheets = require("../config/google");
 
 const spreadsheetId = process.env.SHEET_ID;
 
-// อ่านทั้งหมด
+// อ่านข้อมูลทั้งหมด
 async function getRows(sheetName) {
+
     const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range: sheetName,
@@ -12,175 +13,228 @@ async function getRows(sheetName) {
     return response.data.values || [];
 }
 
+
 // เพิ่มข้อมูล
 async function appendRow(sheetName, row) {
 
     await sheets.spreadsheets.values.append({
-
         spreadsheetId,
-
         range: sheetName,
-
         valueInputOption: "USER_ENTERED",
-
         requestBody: {
-
             values: [row],
-
         },
-
     });
 
 }
 
-// หา id ล่าสุด
+
+// หา ID ล่าสุด
 async function nextId(sheetName) {
 
     const rows = await getRows(sheetName);
 
-    if (rows.length === 0) return 1;
+    if (rows.length <= 1) {
+        return 1;
+    }
 
-    const max = Math.max(
+    const dataRows = rows.slice(1);
 
-        ...rows.map(r => Number(r.id))
+    const numbers = dataRows
+        .map(row => Number(row[0]))
+        .filter(num => !isNaN(num));
 
-    );
+    if (numbers.length === 0) {
+        return 1;
+    }
 
-    return max + 1;
-
+    return Math.max(...numbers) + 1;
 }
 
-// ค้นหา id
+
+// ค้นหาจาก ID
 async function findById(sheetName, id) {
 
     const rows = await getRows(sheetName);
 
-    return rows.find(r => r.id == id);
+    if (rows.length <= 1) {
+        return null;
+    }
 
+    const row = rows
+        .slice(1)
+        .find(row => row[0] == id);
+
+    if (!row) {
+        return null;
+    }
+
+    const headers = rows[0];
+
+    const result = {};
+
+    headers.forEach((header, index) => {
+        result[header] = row[index] ?? "";
+    });
+
+    return result;
 }
+
 
 // ค้นหา 1 รายการ
 async function findOne(sheetName, key, value) {
 
     const rows = await getRows(sheetName);
 
-    return rows.find(r => r[key] == value);
+    if (rows.length <= 1) {
+        return null;
+    }
 
+    const headers = rows[0];
+
+    const keyIndex = headers.indexOf(key);
+
+    if (keyIndex === -1) {
+        return null;
+    }
+
+    const row = rows
+        .slice(1)
+        .find(row =>
+            String(row[keyIndex] ?? "").trim().toLowerCase() ===
+            String(value ?? "").trim().toLowerCase()
+        );
+
+    if (!row) {
+        return null;
+    }
+
+    const result = {};
+
+    headers.forEach((header, index) => {
+        result[header] = row[index] ?? "";
+    });
+
+    return result;
 }
 
 
-// อัปเดต
+// อัปเดตข้อมูล
 async function updateRow(sheetName, id, data) {
 
     const response = await sheets.spreadsheets.values.get({
-
         spreadsheetId,
-
         range: sheetName,
-
     });
 
     const values = response.data.values;
 
-    if (!values || values.length === 0) return false;
+    if (!values || values.length === 0) {
+        return false;
+    }
 
     const headers = values[0];
 
-    const index = values.findIndex((r, i) => i > 0 && r[0] == id);
+    const index = values.findIndex(
+        (row, i) =>
+            i > 0 &&
+            String(row[0]) === String(id)
+    );
 
-    if (index === -1) return false;
+    if (index === -1) {
+        return false;
+    }
 
-    const row = headers.map(h => data[h] ?? "");
+    const oldRow = values[index];
 
-    await sheets.spreadsheets.values.update({
+    const row = headers.map((header, i) => {
 
-        spreadsheetId,
+        const key = header.toLowerCase();
 
-        range: `${sheetName}!A${index + 1}`,
+        const dataKey = Object.keys(data).find(
+            k => k.toLowerCase() === key
+        );
 
-        valueInputOption: "USER_ENTERED",
+        if (dataKey !== undefined) {
+            return data[dataKey];
+        }
 
-        requestBody: {
-
-            values: [row],
-
-        },
+        return oldRow[i] ?? "";
 
     });
 
-    return true;
+    await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A${index + 1}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+            values: [row],
+        },
+    });
 
+    return true;
 }
 
-// ลบ
+// ลบข้อมูล
 async function deleteRow(sheetName, id) {
 
     const response = await sheets.spreadsheets.values.get({
-
         spreadsheetId,
-
         range: sheetName,
-
     });
 
     const values = response.data.values;
 
-    if (!values) return false;
+    if (!values || values.length <= 1) {
+        return false;
+    }
 
     const headers = values[0];
 
     const rows = values.slice(1);
 
-    const newRows = rows.filter(r => r[0] != id);
+    const exists = rows.some(
+        row => String(row[0]) === String(id)
+    );
 
+    if (!exists) {
+        return false;
+    }
+
+    const newRows = rows.filter(
+        row => String(row[0]) !== String(id)
+    );
+
+    // ล้างข้อมูลเดิม
     await sheets.spreadsheets.values.clear({
-
         spreadsheetId,
-
         range: sheetName,
-
     });
 
-    await sheets.spreadsheets.values.append({
-
+    // เขียนข้อมูลกลับ
+    await sheets.spreadsheets.values.update({
         spreadsheetId,
-
         range: sheetName,
-
         valueInputOption: "RAW",
-
         requestBody: {
-
             values: [
-
                 headers,
-
                 ...newRows,
-
             ],
-
         },
-
     });
 
     return true;
-
 }
 
+
+// Export
 module.exports = {
-
     getRows,
-
     appendRow,
-
     nextId,
-
     findById,
-
     findOne,
-
     updateRow,
-
     deleteRow,
-
 };

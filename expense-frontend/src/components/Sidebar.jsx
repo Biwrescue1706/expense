@@ -1,3 +1,5 @@
+//expense-frontend/src/components/Sidebar.jsx
+
 import {
   FaChartPie,
   FaMoneyBillWave,
@@ -30,6 +32,11 @@ const menus = [
     name: "ประเภท",
     icon: <FaTags className="text-lg" />,
     path: "/types",
+  },
+  {
+    name: "สมาชิก",
+    icon: <FaWallet className="text-lg" />,
+    path: "/register",
   },
 ];
 

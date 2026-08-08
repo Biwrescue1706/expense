@@ -28,7 +28,7 @@ exports.login = async (req, res) => {
             httpOnly: true,
             secure: true,      // เปลี่ยนเป็น true เมื่อใช้ HTTPS
             sameSite: "lax",
-            maxAge: 10 * 60 * 1000
+            maxAge: 30 * 60 * 1000
         });
 
         return res.status(200).json({

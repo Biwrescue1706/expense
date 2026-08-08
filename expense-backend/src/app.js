@@ -29,6 +29,9 @@ const authRoute = require("./routes/auth.route");
 const typeRoute = require("./routes/type.route");
 const categoryRoute = require("./routes/category.route");
 const transactionRoute = require("./routes/transaction.route");
+const dashboardRoute = require("./routes/dashboard.route");
+const userRoute = require("./routes/user.route");
+
 
 app.get("/", (req, res) => {
     res.json({
@@ -37,7 +40,9 @@ app.get("/", (req, res) => {
     });
 });
 
+app.use("/api/dashboard", dashboardRoute);
 app.use("/api/auth", authRoute);
+app.use("/api/users", userRoute);
 app.use("/api/types", typeRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/transactions", transactionRoute);

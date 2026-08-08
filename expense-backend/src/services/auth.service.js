@@ -75,50 +75,57 @@ exports.register = async (data) => {
 };
 
 //Login
-// Login
 exports.login = async (data) => {
 
-    const { email, password } = data;
+    const { username, password } = data;
 
-    const users = await sheet.getRows("Users");
-    const rows = users.slice(1);
+    if (!username || !password) {
+        throw new Error("กรุณากรอก Username / Email และ Password");
+    }
 
-    // ค้นหาจาก Email
-    const user = rows.find(
-        row =>
-            row[3] &&
-            row[3].toLowerCase() === email.toLowerCase()
-    );
+    const rows = (await sheet.getRows("Users")).slice(1);
+
+    const user = rows.find(row => {
+
+        const userName = row[1]?.trim().toLowerCase();
+        const email = row[2]?.trim().toLowerCase();
+
+        return (
+            userName === username.trim().toLowerCase() ||
+            email === username.trim().toLowerCase()
+        );
+
+    });
 
     if (!user) {
-        throw new Error("Email หรือ Password ไม่ถูกต้อง");
+        throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
     }
 
-    // ตรวจสอบ Password
-    const ok = await bcrypt.compare(password, user[4]);
+    const ok = await bcrypt.compare(
+        password,
+        user[3]
+    );
 
     if (!ok) {
-        throw new Error("Email หรือ Password ไม่ถูกต้อง");
+        throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
     }
 
-    // สร้าง Token
     const token = jwt.sign(
         {
             id: user[0],
             username: user[1],
-            name: user[2],
-            email: user[3],
-            role: user[5],
-            prefix: user[6],
-            firstName: user[7],
-            lastName: user[8],
-            fullName: user[9],
-            phone: user[10],
-            citizenId: user[11]
+            email: user[2],
+            role: user[4],
+            prefix: user[5],
+            firstName: user[6],
+            lastName: user[7],
+            fullName: user[8],
+            phone: user[9],
+            citizenId: user[10]
         },
         JWT_SECRET,
         {
-            expiresIn: "10m"
+            expiresIn: "30m"
         }
     );
 
@@ -128,15 +135,14 @@ exports.login = async (data) => {
         user: {
             id: user[0],
             username: user[1],
-            name: user[2],
-            email: user[3],
-            role: user[5],
-            prefix: user[6],
-            firstName: user[7],
-            lastName: user[8],
-            fullName: user[9],
-            phone: user[10],
-            citizenId: user[11]
+            email: user[2],
+            role: user[4],
+            prefix: user[5],
+            firstName: user[6],
+            lastName: user[7],
+            fullName: user[8],
+            phone: user[9],
+            citizenId: user[10]
         }
     };
 

@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  FaEnvelope,
-  FaLock,
-  FaWallet,
-  FaEye,
-  FaEyeSlash,
-} from "react-icons/fa";
+import { FaUser, FaLock, FaWallet, FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import api from "../api/axios";
 
@@ -14,7 +8,7 @@ function Login() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    email: "",
+    username: "",
     password: "",
   });
 
@@ -84,17 +78,19 @@ function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label className="block text-sm font-medium mb-2">
+                Username หรือ Email
+              </label>
 
               <div className="relative">
-                <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
 
                 <input
-                  type="email"
-                  name="email"
-                  value={form.email}
+                  type="text"
+                  name="username"
+                  value={form.username}
                   onChange={handleChange}
-                  placeholder="example@gmail.com"
+                  placeholder="Username หรือ Email"
                   required
                   className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                 />

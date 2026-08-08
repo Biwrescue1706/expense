@@ -2,15 +2,19 @@
 
 const transactionService = require("../services/transaction.service");
 
-// =======================
-// GET ALL
-// =======================
+// GET One
 exports.getTransactions = async (req, res) => {
+
     try {
 
-        const data = await transactionService.getAll();
+        const userId = req.user.id;
 
-        res.json(data);
+        const data = await transactionService.getAll(userId);
+
+        res.json({
+            success: true,
+            data
+        });
 
     } catch (err) {
 
@@ -18,52 +22,25 @@ exports.getTransactions = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: err.message,
+            message: err.message
         });
 
     }
+
 };
 
-// =======================
-// GET ONE
-// =======================
-exports.getTransaction = async (req, res) => {
-    try {
-
-        const data = await transactionService.getById(
-            req.params.id
-        );
-
-        if (!data) {
-            return res.status(404).json({
-                success: false,
-                message: "ไม่พบข้อมูล"
-            });
-        }
-
-        res.json(data);
-
-    } catch (err) {
-
-        console.error(err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message,
-        });
-
-    }
-};
-
-// =======================
-// CREATE
-// =======================
+//สร้าง
 exports.createTransaction = async (req, res) => {
+
     try {
 
-        const result = await transactionService.create(
-            req.body
-        );
+        const userId = req.user.id;
+
+        const result =
+            await transactionService.create(
+                userId,
+                req.body
+            );
 
         res.status(201).json(result);
 
@@ -73,15 +50,14 @@ exports.createTransaction = async (req, res) => {
 
         res.status(400).json({
             success: false,
-            message: err.message,
+            message: err.message
         });
 
     }
+
 };
 
-// =======================
 // UPDATE
-// =======================
 exports.updateTransaction = async (req, res) => {
     try {
 
@@ -104,9 +80,7 @@ exports.updateTransaction = async (req, res) => {
     }
 };
 
-// =======================
 // DELETE
-// =======================
 exports.deleteTransaction = async (req, res) => {
     try {
 
