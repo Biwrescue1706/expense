@@ -1,4 +1,4 @@
-//expense-frontend/src/components/Sidebar.jsx
+// expense-frontend/src/components/Sidebar.jsx
 
 import {
   FaChartPie,
@@ -9,6 +9,7 @@ import {
   FaWallet,
   FaSignOutAlt,
 } from "react-icons/fa";
+
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
@@ -41,27 +42,82 @@ const menus = [
 ];
 
 function Sidebar({ open, setOpen, user }) {
+
   const navigate = useNavigate();
 
+  // =========================
+  // Logout
+  // =========================
+
   const handleLogout = async () => {
+
     try {
+
       await api.post("/auth/logout");
+
     } catch (err) {
+
       console.error(err);
+
     } finally {
-      navigate("/", { replace: true });
+
+      navigate("/", {
+        replace: true,
+      });
+
     }
+
   };
 
+  // =========================
+  // ชื่อผู้ใช้งาน
+  // =========================
+
+  const displayName =
+    user?.fullName ||
+    `${user?.prefix || ""}${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    user?.username ||
+    "ผู้ใช้งาน";
+
+  // =========================
+  // Role
+  // =========================
+
+  const roleName =
+    user?.role === "admin"
+      ? "ผู้ดูแลระบบ"
+      : "สมาชิก";
+
+  // =========================
+  // ตัวอักษร Avatar
+  // =========================
+
+  const avatarText =
+    user?.firstName?.charAt(0) ||
+    user?.username?.charAt(0) ||
+    "U";
+
   return (
+
     <>
-      {/* Overlay */}
+
+      {/* =========================
+          Overlay Mobile
+      ========================= */}
+
       {open && (
+
         <div
           className="fixed inset-0 bg-black/40 z-30 lg:hidden"
           onClick={() => setOpen(false)}
         />
+
       )}
+
+
+      {/* =========================
+          Sidebar
+      ========================= */}
 
       <aside
         className={`
@@ -78,106 +134,191 @@ function Sidebar({ open, setOpen, user }) {
           flex flex-col
         `}
       >
-        {/* Logo */}
+
+        {/* =========================
+            Logo
+        ========================= */}
+
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-700">
+
           <div className="flex items-center gap-3">
+
             <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
+
               <FaWallet />
+
             </div>
 
             <div>
+
               <h2 className="text-base font-bold text-white">
                 Expense Tracker
               </h2>
-              <p className="text-xs text-slate-400">Management System</p>
+
+              <p className="text-xs text-slate-400">
+                Management System
+              </p>
+
             </div>
+
           </div>
 
-          <button onClick={() => setOpen(false)} className="lg:hidden">
+
+          {/* Close Mobile */}
+
+          <button
+            onClick={() => setOpen(false)}
+            className="lg:hidden text-white hover:text-red-400 transition"
+          >
+
             <FaTimes size={20} />
+
           </button>
+
         </div>
 
-        {/* Menu */}
-        <div className="px-5 pt-6 pb-2 text-xs uppercase tracking-wider text-slate-500">
+
+        {/* =========================
+            User Profile
+            อยู่ก่อนเมนูหลัก
+        ========================= */}
+
+        <div className="px-4 pt-5">
+
+          <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+
+            {/* Avatar */}
+
+            <div className="w-10 h-10 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center font-bold text-white uppercase">
+
+              {avatarText}
+
+            </div>
+
+
+            {/* User Information */}
+
+            <div className="min-w-0">
+
+              <p className="text-sm font-semibold text-white truncate">
+
+                {displayName}
+
+              </p>
+
+              <p className="text-xs text-slate-400 truncate">
+
+                {roleName}
+
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* =========================
+            Menu Title
+        ========================= */}
+
+        <div className="px-5 pt-5 pb-2 text-xs uppercase tracking-wider text-slate-500">
+
           เมนูหลัก
+
         </div>
 
-        <nav className="flex-1 px-3 space-y-2">
+
+        {/* =========================
+            Menu
+        ========================= */}
+
+        <nav className="flex-1 px-3 space-y-2 overflow-y-auto">
+
           {menus.map((menu) => (
+
             <NavLink
               key={menu.path}
               to={menu.path}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200
+                `
+                flex items-center gap-3
+                rounded-xl
+                px-4 py-3
+                transition-all duration-200
+
                 ${
                   isActive
                     ? "bg-green-500 text-white shadow-lg"
                     : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }`
+                }
+                `
               }
             >
+
               {menu.icon}
-              <span>{menu.name}</span>
+
+              <span>
+                {menu.name}
+              </span>
+
             </NavLink>
+
           ))}
+
         </nav>
 
-        {/* Footer */}
+
+        {/* =========================
+            Footer
+        ========================= */}
+
         <div className="border-t border-slate-700 p-5">
+
+          {/* Logout */}
+
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-500 hover:bg-red-600 py-3 text-white font-medium transition"
+            className="
+              w-full
+              flex items-center justify-center gap-2
+              rounded-xl
+              bg-red-500
+              hover:bg-red-600
+              py-3
+              text-white
+              font-medium
+              transition
+            "
           >
+
             <FaSignOutAlt />
+
             ออกจากระบบ
+
           </button>
 
-        {/* User Profile */}
 
-<div className="px-4 pb-4">
+          {/* Version */}
 
-  <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div className="mt-4 text-center text-xs text-slate-500">
 
-    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center font-bold">
+            Expense Tracker
 
-      {(
-        user?.firstName ||
-        user?.username ||
-        "U"
-      )
-        .charAt(0)
-        .toUpperCase()}
+            <br />
 
-    </div>
+            Version 1.0.0
 
-    <div className="min-w-0">
+          </div>
 
-      <p className="text-sm font-semibold text-white truncate">
-
-        {user?.fullName ||
-          user?.username ||
-          "ผู้ใช้งาน"}
-
-      </p>
-
-      <p className="text-xs text-slate-400">
-
-        {user?.role === "admin"
-          ? "ผู้ดูแลระบบ"
-          : "สมาชิก"}
-
-      </p>
-
-    </div>
-
-  </div>
-
-</div>
         </div>
+
       </aside>
+
     </>
+
   );
 }
 
