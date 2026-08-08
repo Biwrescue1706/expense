@@ -1,3 +1,4 @@
+//expense-frontend/src/components/Navbar.jsx
 import { FaBars, FaWallet } from "react-icons/fa";
 
 function Navbar({ setOpen }) {
