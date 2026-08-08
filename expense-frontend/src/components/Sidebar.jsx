@@ -40,7 +40,7 @@ const menus = [
   },
 ];
 
-function Sidebar({ open, setOpen }) {
+function Sidebar({ open, setOpen, user }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -134,11 +134,47 @@ function Sidebar({ open, setOpen }) {
             ออกจากระบบ
           </button>
 
-          <div className="mt-4 text-center text-xs text-slate-500">
-            Expense Tracker
-            <br />
-            Version 1.0.0
-          </div>
+        {/* User Profile */}
+
+<div className="px-4 pb-4">
+
+  <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+
+    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center font-bold">
+
+      {(
+        user?.firstName ||
+        user?.username ||
+        "U"
+      )
+        .charAt(0)
+        .toUpperCase()}
+
+    </div>
+
+    <div className="min-w-0">
+
+      <p className="text-sm font-semibold text-white truncate">
+
+        {user?.fullName ||
+          user?.username ||
+          "ผู้ใช้งาน"}
+
+      </p>
+
+      <p className="text-xs text-slate-400">
+
+        {user?.role === "admin"
+          ? "ผู้ดูแลระบบ"
+          : "สมาชิก"}
+
+      </p>
+
+    </div>
+
+  </div>
+
+</div>
         </div>
       </aside>
     </>
