@@ -307,8 +307,7 @@ exports.update = async (userId, id, data) => {
 };
 
 // DELETE
-// DELETE
-exports.remove = async (userId, id) => {
+exports.remove = async (id) => {
 
     const rows = await sheet.getRows("Transactions");
 
@@ -318,39 +317,12 @@ exports.remove = async (userId, id) => {
 
     const transactions = rows.slice(1);
 
-    console.log("========== DELETE ==========");
-    console.log("id ที่ต้องการลบ:", id);
-    console.log("userId ของผู้ใช้:", userId);
-
-    const transaction = transactions.find(row => {
-
-        const rowId = String(row[0] ?? "").trim();
-        const rowUserId = String(row[1] ?? "").trim();
-
-        const targetId = String(id ?? "").trim();
-        const targetUserId = String(userId ?? "").trim();
-
-        console.log({
-            rowId,
-            rowUserId,
-            targetId,
-            targetUserId,
-            idMatch: rowId === targetId,
-            userIdMatch: rowUserId === targetUserId
-        });
-
-        return (
-            rowId === targetId &&
-            rowUserId === targetUserId
-        );
-    });
-
-    console.log("รายการที่พบ:", transaction);
+    const transaction = transactions.find(row =>
+        String(row[0] ?? "").trim() === String(id ?? "").trim()
+    );
 
     if (!transaction) {
-        throw new Error(
-            "ไม่พบรายการ หรือไม่มีสิทธิ์ลบรายการนี้"
-        );
+        throw new Error("ไม่พบรายการนี้");
     }
 
     const ok = await sheet.deleteRow(
@@ -361,8 +333,6 @@ exports.remove = async (userId, id) => {
     if (!ok) {
         throw new Error("ลบรายการไม่สำเร็จ");
     }
-
-    console.log("ลบสำเร็จ ID:", id);
 
     return {
         success: true,
