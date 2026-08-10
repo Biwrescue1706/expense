@@ -311,18 +311,49 @@ exports.remove = async (userId, id) => {
 
     const rows = await sheet.getRows("Transactions");
 
+    if (!rows || rows.length <= 1) {
+        throw new Error("ไม่พบข้อมูลรายการ");
+    }
+
+    const headers = rows[0];
+
+    // หา index ของแต่ละ column
+    const idIndex = headers.findIndex(
+        h => String(h).trim().toLowerCase() === "id"
+    );
+
+    const userIdIndex = headers.findIndex(
+        h => String(h).trim().toLowerCase() === "userid"
+    );
+
+    if (idIndex === -1) {
+        throw new Error("ไม่พบคอลัมน์ ID ใน Transactions");
+    }
+
+    if (userIdIndex === -1) {
+        throw new Error("ไม่พบคอลัมน์ UserId ใน Transactions");
+    }
+
     const transactions = rows.slice(1);
 
-    const transaction = transactions.find(
-        row =>
-            String(row[0]) === String(id) &&
-            String(row[1]) === String(userId)
-    );
+    const transaction = transactions.find(row => {
+
+        const rowId = String(row[idIndex] ?? "").trim();
+        const rowUserId = String(row[userIdIndex] ?? "").trim();
+
+        return (
+            rowId === String(id).trim() &&
+            rowUserId === String(userId).trim()
+        );
+    });
+
+    console.log("FOUND TRANSACTION:", transaction);
 
     if (!transaction) {
         throw new Error("ไม่พบรายการ หรือไม่มีสิทธิ์ลบรายการนี้");
     }
 
+    // ลบโดยใช้ Transaction ID
     const ok = await sheet.deleteRow(
         "Transactions",
         id
