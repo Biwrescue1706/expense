@@ -1,10 +1,13 @@
 const { google } = require("googleapis");
 const path = require("path");
 
-
+const keyFile = path.join(
+    __dirname,
+    "../gen-lang-client-0768194995-0e62b8f56df9.json"
+);
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: "gen-lang-client-0768194995-0e62b8f56df9.json",
+    keyFile,
     scopes: [
         "https://www.googleapis.com/auth/spreadsheets"
     ]
