@@ -71,20 +71,16 @@ function Login() {
 
         {/* Right */}
         <div className="p-10 lg:p-14">
-          <h2 className="text-3xl font-bold text-gray-800">เข้าสู่ระบบ</h2>
-
-          <p className="text-gray-500 mt-2 mb-8">ยินดีต้อนรับกลับ</p>
-
+          <h2 className="text-3xl font-bold text-center text-gray-800">เข้าสู่ระบบ</h2>
+          <p className="text-gray-500 text-center mt-2 mb-8">ยินดีต้อนรับกลับ</p>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Username หรือ Email
               </label>
-
               <div className="relative">
                 <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-
                 <input
                   type="text"
                   name="username"
@@ -143,16 +139,6 @@ function Login() {
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </button>
           </form>
-
-          <div className="text-center mt-8 text-sm">
-            ยังไม่มีบัญชีใช่ไหม?{" "}
-            <Link
-              to="/register"
-              className="text-green-600 font-semibold hover:underline"
-            >
-              สมัครสมาชิก
-            </Link>
-          </div>
         </div>
       </div>
     </div>

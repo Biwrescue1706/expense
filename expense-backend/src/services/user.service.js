@@ -3,11 +3,9 @@ const bcrypt = require("bcrypt");
 const sheet = require("./sheet.service");
 
 // GET ALL
-
 exports.getAll = async () => {
 
     const rows = (await sheet.getRows("Users")).slice(1);
-
     return rows.map(row => ({
         id: row[0],
         username: row[1],
@@ -25,7 +23,6 @@ exports.getAll = async () => {
 };
 
 // GET BY ID
-
 exports.getById = async (id) => {
 
     const rows = (await sheet.getRows("Users")).slice(1);

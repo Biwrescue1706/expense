@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { errorAlert } from "../utils/alert";
 
 import { FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";
 
@@ -11,36 +12,49 @@ function Dashboard() {
     totalExpense: 0,
     balance: 0,
     totalTransactions: 0,
+    incomeTransactions: 0,
+    expenseTransactions: 0,
   });
 
   const [latestTransactions, setLatestTransactions] = useState([]);
-
-  // =========================
-  // โหลด Dashboard
-  // =========================
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     loadDashboard();
+    loadUser();
   }, []);
 
   const loadDashboard = async () => {
     try {
       const res = await api.get("/dashboard");
 
-      setSummary(res.data.data.summary);
-
-      setLatestTransactions(res.data.data.latestTransactions);
+      const data = res.data.data;
+      setSummary({
+        totalIncome: Number(data.summary?.totalIncome || 0),
+        totalExpense: Number(data.summary?.totalExpense || 0),
+        balance: Number(data.summary?.balance || 0),
+        totalTransactions: Number(data.summary?.totalTransactions || 0),
+        incomeTransactions: Number(data.summary?.incomeTransactions || 0),
+        expenseTransactions: Number(data.summary?.expenseTransactions || 0),
+      });
+      setLatestTransactions(data.latestTransactions || []);
     } catch (err) {
-      console.error("Dashboard Error:", err);
+      errorAlert(
+        err.response?.data?.message || "ไม่สามารถโหลดข้อมูล Dashboard ได้",
+      );
     }
   };
 
-  // =========================
-  // แปลงวันที่
-  // 2026-08-08
-  // ↓
-  // 8 ส.ค. 2569
-  // =========================
+  const loadUser = async () => {
+    try {
+      const res = await api.get("/auth/profile");
+      setUser(res.data.user);
+    } catch (err) {
+      errorAlert(
+        err.response?.data?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้",
+      );
+    }
+  };
 
   const formatThaiDate = (date) => {
     if (!date) {
@@ -75,28 +89,22 @@ function Dashboard() {
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
 
-  // =========================
-  // Cards
-  // =========================
-
   const cards = [
     {
       title: "รายรับ",
-      value: Number(summary.totalIncome || 0),
+      value: summary.totalIncome,
       color: "bg-green-500",
       icon: <FaArrowUp />,
     },
-
     {
       title: "รายจ่าย",
-      value: Number(summary.totalExpense || 0),
+      value: summary.totalExpense,
       color: "bg-red-500",
       icon: <FaArrowDown />,
     },
-
     {
       title: "คงเหลือ",
-      value: Number(summary.balance || 0),
+      value: summary.balance,
       color: "bg-blue-500",
       icon: <FaWallet />,
     },
@@ -104,44 +112,42 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* =========================
-          Header
-      ========================= */}
-
       <div>
         <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
 
-        <p className="text-gray-500 mt-1">ภาพรวมรายรับ รายจ่าย และยอดคงเหลือ</p>
+        <p className="mt-1 text-gray-500">ภาพรวมรายรับ รายจ่าย และยอดคงเหลือ</p>
       </div>
 
-      {/* =========================
-          Summary
-      ========================= */}
+      <div className="w-full overflow-hidden whitespace-nowrap">
+        <div className="inline-block animate-marquee text-3xl font-bold text-gray-800">
+          ยินดีต้อนรับ {user?.fullName || "-"} เข้าสู่ระบบจัดการรายรับรายจ่าย
+        </div>
+      </div>
 
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <div
             key={card.title}
-            className="bg-white rounded-2xl shadow border overflow-hidden"
+            className="overflow-hidden rounded-2xl border bg-white shadow"
           >
             <div className={`${card.color} h-2`} />
 
-            <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center justify-between p-6">
               <div>
                 <p className="text-gray-500">{card.title}</p>
 
-                <h2 className="text-3xl font-bold mt-2">
-                  {card.value.toLocaleString()} บาท
+                <h2 className="mt-2 text-3xl font-bold">
+                  {card.value.toLocaleString()}
                 </h2>
               </div>
 
               <div
                 className={`
                   ${card.color}
-                  w-14 h-14
+                  flex h-14 w-14
+                  items-center justify-center
                   rounded-2xl
-                  flex items-center justify-center
-                  text-white text-xl
+                  text-xl text-white
                 `}
               >
                 {card.icon}
@@ -151,17 +157,9 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* =========================
-          Bottom
-      ========================= */}
-
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* =========================
-            รายการล่าสุด
-        ========================= */}
-
-        <div className="bg-white rounded-2xl shadow p-6">
-          <div className="flex items-center justify-between mb-5">
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center justify-between">
             <h2 className="text-lg font-semibold">รายการล่าสุด</h2>
 
             <span className="text-sm text-gray-400">5 รายการล่าสุด</span>
@@ -172,37 +170,24 @@ function Dashboard() {
               {latestTransactions.slice(0, 5).map((item) => (
                 <div
                   key={item.id}
-                  className="
-                      border-b
-                      pb-4
-                      last:border-b-0
-                      last:pb-0
-                    "
+                  className="border-b pb-4 last:border-b-0 last:pb-0"
                 >
-                  {/* บรรทัดบน */}
-
                   <div className="flex justify-between gap-4">
-                    {/* ข้อมูลรายการ */}
-
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        {/* Icon */}
-
                         <div
                           className={`
-                              w-10
-                              h-10
-                              rounded-full
-                              flex
-                              items-center
-                              justify-center
-                              flex-shrink-0
-                              ${
-                                Number(item.income) > 0
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-red-100 text-red-600"
-                              }
-                            `}
+                            flex h-10 w-10
+                            flex-shrink-0
+                            items-center
+                            justify-center
+                            rounded-full
+                            ${
+                              Number(item.income) > 0
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                            }
+                          `}
                         >
                           {Number(item.income) > 0 ? (
                             <FaArrowUp />
@@ -212,13 +197,9 @@ function Dashboard() {
                         </div>
 
                         <div>
-                          {/* หมวดหมู่ */}
-
                           <p className="font-semibold text-gray-800">
                             {item.categoryName || "-"}
                           </p>
-
-                          {/* วันที่ */}
 
                           <p className="text-sm text-gray-500">
                             {formatThaiDate(item.date)}
@@ -227,123 +208,98 @@ function Dashboard() {
                       </div>
                     </div>
 
-                    {/* จำนวนเงิน */}
-
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex-shrink-0 text-right">
                       {Number(item.income) > 0 ? (
                         <p className="font-bold text-green-600">
-                          +{Number(item.income).toLocaleString()}
-                          {" บาท"}
+                          +{Number(item.income).toLocaleString()} บาท
                         </p>
                       ) : (
                         <p className="font-bold text-red-600">
-                          -{Number(item.expense).toLocaleString()}
-                          {" บาท"}
+                          -{Number(item.expense).toLocaleString()} บาท
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* =========================
-                        รายละเอียด
-                    ========================= */}
-
                   <div className="ml-13 mt-3 space-y-1">
-                    {/* ประเภท */}
-
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">ประเภท:</span>{" "}
                       {item.typeName || "-"}
                     </p>
-
-                    {/* หมวดหมู่ */}
 
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">หมวดหมู่:</span>{" "}
                       {item.categoryName || "-"}
                     </p>
 
-                    {/* Note */}
-
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">หมายเหตุ:</span>{" "}
-                      {item.note ? item.note : "-"}
+                      {item.note || "-"}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center text-gray-400 py-10">
-              <FaWallet
-                className="
-                  mx-auto
-                  text-4xl
-                  text-gray-300
-                  mb-3
-                "
-              />
+            <div className="py-10 text-center text-gray-400">
+              <FaWallet className="mx-auto mb-3 text-4xl text-gray-300" />
 
               <p>ยังไม่มีรายการ</p>
             </div>
           )}
         </div>
 
-        {/* =========================
-            สรุปข้อมูล
-        ========================= */}
+        <div className="rounded-3xl bg-white p-6 shadow-lg">
+          <h2 className="mb-6 text-2xl font-bold text-gray-800">สรุปข้อมูล</h2>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">สรุปข้อมูล</h2>
+          <div className="flex items-center justify-between py-3">
+            <span className="text-lg text-gray-700">จำนวนรายการ</span>
 
-          <div className="space-y-4">
-            {/* จำนวนรายการ */}
+            <strong className="text-lg font-bold text-gray-900">
+              {summary.totalTransactions.toLocaleString()} รายการ
+            </strong>
+          </div>
 
-            <div className="flex justify-between">
-              <span>จำนวนรายการ</span>
+          <div className="flex items-center justify-between py-3">
+            <span className="text-lg text-gray-700">จำนวนรายการรายรับ</span>
 
-              <span className="font-bold">
-                {Number(summary.totalTransactions || 0).toLocaleString()}
-              </span>
-            </div>
+            <strong className="text-lg font-bold text-green-600">
+              {summary.incomeTransactions.toLocaleString()} รายการ
+            </strong>
+          </div>
 
-            {/* รายรับ */}
+          <div className="flex items-center justify-between py-3">
+            <span className="text-lg text-gray-700">จำนวนรายการรายจ่าย</span>
 
-            <div className="flex justify-between">
-              <span>รายรับทั้งหมด</span>
+            <strong className="text-lg font-bold text-red-600">
+              {summary.expenseTransactions.toLocaleString()} รายการ
+            </strong>
+          </div>
 
-              <span className="text-green-600 font-bold">
-                {Number(summary.totalIncome || 0).toLocaleString()}
+          <div className="flex items-center justify-between py-3">
+            <span className="text-lg text-gray-700">รายรับทั้งหมด</span>
 
-                {" บาท"}
-              </span>
-            </div>
+            <strong className="text-lg font-bold text-green-600">
+              {summary.totalIncome.toLocaleString()} บาท
+            </strong>
+          </div>
 
-            {/* รายจ่าย */}
+          <div className="flex items-center justify-between py-3">
+            <span className="text-lg text-gray-700">รายจ่ายทั้งหมด</span>
 
-            <div className="flex justify-between">
-              <span>รายจ่ายทั้งหมด</span>
+            <strong className="text-lg font-bold text-red-600">
+              {summary.totalExpense.toLocaleString()} บาท
+            </strong>
+          </div>
 
-              <span className="text-red-600 font-bold">
-                {Number(summary.totalExpense || 0).toLocaleString()}
+          <div className="my-3 border-t border-gray-400" />
 
-                {" บาท"}
-              </span>
-            </div>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xl font-bold text-gray-800">คงเหลือ</span>
 
-            <hr />
-
-            {/* คงเหลือ */}
-
-            <div className="flex justify-between text-lg">
-              <span className="font-bold">คงเหลือ</span>
-
-              <span className="text-blue-600 font-bold">
-                {Number(summary.balance || 0).toLocaleString()}
-
-                {" บาท"}
-              </span>
-            </div>
+            <strong className="text-xl font-bold text-blue-600">
+              {summary.balance.toLocaleString()} บาท
+            </strong>
           </div>
         </div>
       </div>

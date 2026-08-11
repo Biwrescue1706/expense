@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+// expense-frontend/src/pages/Transactions.jsx
+
+import { useEffect, useMemo, useState } from "react";
 import {
   FaPlus,
   FaArrowUp,
@@ -6,7 +8,12 @@ import {
   FaEdit,
   FaTrash,
   FaList,
+  FaFilePdf,
 } from "react-icons/fa";
+
+import api from "../api/axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import {
   getTransactions,
@@ -23,11 +30,15 @@ function Transactions() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
+  const [user, setUser] = useState(null);
 
-  // โหลดรายการ
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
 
   useEffect(() => {
     loadTransactions();
+    loadUser();
   }, []);
 
   const loadTransactions = async () => {
@@ -46,12 +57,27 @@ function Transactions() {
     }
   };
 
-  // แปลงวันที่เป็นไทย
+  const loadUser = async () => {
+    try {
+      const res = await api.get("/auth/profile");
+
+      setUser(res.data.user);
+    } catch (err) {
+      console.error(err);
+
+      errorAlert(
+        err.response?.data?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้",
+      );
+    }
+  };
+
   const formatThaiDate = (date) => {
     if (!date) {
       return "-";
     }
+
     const [year, month, day] = date.split("-").map(Number);
+
     const months = [
       "ม.ค.",
       "ก.พ.",
@@ -66,96 +92,575 @@ function Transactions() {
       "พ.ย.",
       "ธ.ค.",
     ];
+
     if (!year || !month || !day || !months[month - 1]) {
       return date;
     }
+
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
 
-  // เพิ่มรายการ
   const handleAdd = () => {
     setEditTransaction(null);
     setModalOpen(true);
   };
 
-  // แก้ไขรายการ
   const handleEdit = (transaction) => {
     setEditTransaction(transaction);
     setModalOpen(true);
   };
 
-  // ลบรายการ
   const handleDelete = async (id) => {
     const result = await confirmDelete();
+
     if (!result.isConfirmed) {
       return;
     }
+
     try {
       await deleteTransaction(id);
+
       successAlert("ลบรายการสำเร็จ");
+
       await loadTransactions();
     } catch (err) {
       errorAlert(err.response?.data?.message || "ไม่สามารถลบรายการได้");
     }
   };
 
-  // หลังบันทึก
   const handleSuccess = async () => {
     await loadTransactions();
   };
 
+  const handleStartDateChange = (value) => {
+    setSelectedYear("");
+    setStartDate(value);
+  };
+
+  const handleEndDateChange = (value) => {
+    setSelectedYear("");
+    setEndDate(value);
+  };
+
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+
+    if (year) {
+      setStartDate(`${year}-01-01`);
+      setEndDate(`${year}-12-31`);
+    } else {
+      setStartDate("");
+      setEndDate("");
+    }
+  };
+
+  const handleClearFilter = () => {
+    setSelectedYear("");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const availableYears = useMemo(() => {
+    const years = transactions
+      .map((transaction) => {
+        if (!transaction.date) {
+          return null;
+        }
+
+        return transaction.date.substring(0, 4);
+      })
+      .filter(Boolean);
+
+    return [...new Set(years)].sort((a, b) => Number(b) - Number(a));
+  }, [transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    let result = [...transactions];
+
+    if (selectedYear) {
+      result = result.filter((transaction) =>
+        transaction.date?.startsWith(`${selectedYear}-`),
+      );
+    } else {
+      if (startDate) {
+        result = result.filter((transaction) => transaction.date >= startDate);
+      }
+
+      if (endDate) {
+        result = result.filter((transaction) => transaction.date <= endDate);
+      }
+    }
+
+    return result.sort((a, b) =>
+      String(a.date || "").localeCompare(String(b.date || "")),
+    );
+  }, [transactions, startDate, endDate, selectedYear]);
+
+  const totalIncome = filteredTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.income || 0),
+    0,
+  );
+
+  const totalExpense = filteredTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.expense || 0),
+    0,
+  );
+
+  const latestBalance =
+    filteredTransactions.length > 0
+      ? Number(
+          filteredTransactions[filteredTransactions.length - 1].balance || 0,
+        )
+      : 0;
+
+  const arrayBufferToBase64 = (buffer) => {
+    let binary = "";
+
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+  };
+
+  const handleExportPDF = async () => {
+    if (startDate && endDate && startDate > endDate) {
+      errorAlert("วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด");
+      return;
+    }
+
+    if (filteredTransactions.length === 0) {
+      errorAlert("ไม่มีข้อมูลในช่วงวันที่หรือปีที่เลือก");
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const fontUrl = "/fonts/THSarabunNew.ttf";
+
+      const response = await fetch(fontUrl);
+
+      if (!response.ok) {
+        throw new Error("ไม่พบไฟล์ฟอนต์ THSarabunNew.ttf");
+      }
+
+      const fontBuffer = await response.arrayBuffer();
+
+      const fontBase64 = arrayBufferToBase64(fontBuffer);
+
+      pdf.addFileToVFS("THSarabunNew.ttf", fontBase64);
+
+      pdf.addFont("THSarabunNew.ttf", "THSarabunNew", "normal");
+
+      pdf.setFont("THSarabunNew", "normal");
+
+      const userName = user?.fullName || user?.FullName || "-";
+
+      const reportStartDate =
+        startDate ||
+        (selectedYear
+          ? `${selectedYear}-01-01`
+          : filteredTransactions[0]?.date || "");
+
+      const reportEndDate =
+        endDate ||
+        (selectedYear
+          ? `${selectedYear}-12-31`
+          : filteredTransactions[filteredTransactions.length - 1]?.date || "");
+
+      const today = new Date().toISOString().split("T")[0];
+
+      const tableData = filteredTransactions.map((transaction) => [
+        formatThaiDate(transaction.date),
+
+        transaction.typeName || "รายจ่าย",
+
+        transaction.categoryName || "-",
+
+        Number(transaction.income || 0) > 0
+          ? `${Number(transaction.income).toLocaleString()}`
+          : "-",
+
+        Number(transaction.expense || 0) > 0
+          ? `${Number(transaction.expense).toLocaleString()}`
+          : "-",
+
+        Number(transaction.balance || 0).toLocaleString(),
+
+        transaction.note || "-",
+      ]);
+
+      const drawPageHeader = () => {
+        pdf.setFont("THSarabunNew", "normal");
+
+        pdf.setTextColor(0, 0, 0);
+
+        pdf.setFontSize(22);
+
+        pdf.text("รายงานรายการรายรับรายจ่าย", 105, 18, {
+          align: "center",
+        });
+
+        pdf.setFontSize(15);
+
+        pdf.text(userName, 15, 27, {
+          align: "left",
+        });
+
+        pdf.text(
+          `ช่วงวันที่: ${formatThaiDate(reportStartDate)} - ${formatThaiDate(
+            reportEndDate,
+          )}`,
+          15,
+          35,
+          {
+            align: "left",
+          },
+        );
+
+        pdf.setFontSize(14);
+
+        pdf.setTextColor(22, 163, 74);
+
+        pdf.text(`รายรับทั้งหมด: ${totalIncome.toLocaleString()} บาท`, 15, 43);
+
+        pdf.setTextColor(220, 38, 38);
+
+        pdf.text(
+          `รายจ่ายทั้งหมด: ${totalExpense.toLocaleString()} บาท`,
+          75,
+          43,
+        );
+
+        pdf.setTextColor(37, 99, 235);
+
+        pdf.text(`คงเหลือ: ${latestBalance.toLocaleString()} บาท`, 155, 43);
+
+        pdf.setTextColor(0, 0, 0);
+      };
+
+      const drawPageFooter = (page, pageCount) => {
+        pdf.setFont("THSarabunNew", "normal");
+
+        pdf.setFontSize(10);
+
+        pdf.setTextColor(0, 0, 0);
+
+        pdf.text(`วันที่ออกรายงาน: ${formatThaiDate(today)}`, 105, 287, {
+          align: "center",
+        });
+
+        pdf.text(`หน้า ${page} / ${pageCount}`, 200, 287, {
+          align: "right",
+        });
+      };
+
+      autoTable(pdf, {
+        startY: 50,
+
+        head: [
+          [
+            "วันที่",
+            "ประเภท",
+            "หมวดหมู่",
+            "รายรับ",
+            "รายจ่าย",
+            "คงเหลือ",
+            "หมายเหตุ",
+          ],
+        ],
+
+        body: tableData,
+
+        theme: "grid",
+
+        styles: {
+          font: "THSarabunNew",
+          fontStyle: "normal",
+          fontSize: 14,
+          cellPadding: 3,
+          textColor: [31, 41, 55],
+          lineColor: [180, 180, 180],
+          lineWidth: 0.3,
+        },
+
+        headStyles: {
+          font: "THSarabunNew",
+          fontStyle: "normal",
+          fontSize: 14,
+          fillColor: [243, 244, 246],
+          textColor: [17, 24, 39],
+          halign: "center",
+          lineColor: [150, 150, 150],
+          lineWidth: 0.3,
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 25,
+            halign: "center",
+          },
+
+          1: {
+            cellWidth: 20,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 20,
+            halign: "center",
+          },
+
+          3: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          4: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          5: {
+            cellWidth: 25,
+            halign: "right",
+          },
+
+          6: {
+            cellWidth: "auto",
+            halign: "left",
+          },
+        },
+
+        didParseCell: (data) => {
+          if (data.section !== "body") {
+            return;
+          }
+
+          if (data.column.index === 3 && data.cell.raw !== "-") {
+            data.cell.styles.textColor = [22, 163, 74];
+          }
+
+          if (data.column.index === 4 && data.cell.raw !== "-") {
+            data.cell.styles.textColor = [220, 38, 38];
+          }
+
+          if (data.column.index === 5) {
+            data.cell.styles.textColor = [37, 99, 235];
+          }
+        },
+
+        margin: {
+          top: 50,
+          bottom: 20,
+          left: 10,
+          right: 10,
+        },
+
+        didDrawPage: () => {
+          drawPageHeader();
+        },
+      });
+
+      const pageCount = pdf.internal.getNumberOfPages();
+
+      for (let page = 1; page <= pageCount; page++) {
+        pdf.setPage(page);
+
+        drawPageFooter(page, pageCount);
+      }
+
+      let fileName = "รายงานรายรับรายจ่าย";
+
+      if (selectedYear) {
+        fileName += `_พ.ศ.${Number(selectedYear) + 543}`;
+      } else if (startDate || endDate) {
+        fileName += `_${startDate || "เริ่มต้น"}_ถึง_${endDate || "สิ้นสุด"}`;
+      } else {
+        fileName += `_${today}`;
+      }
+
+      pdf.save(`${fileName}.pdf`);
+
+      successAlert("ส่งออก PDF สำเร็จ");
+    } catch (err) {
+      console.error(err);
+
+      errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
             รายการรายรับรายจ่าย
           </h1>
 
-          <p className="text-gray-500 mt-1">
+          <p className="mt-1 text-gray-500">
             จัดการรายการรายรับและรายจ่ายของคุณ
           </p>
         </div>
 
-        <button
-          onClick={handleAdd}
-          className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl shadow transition"
-        >
-          <FaPlus />
-          เพิ่มรายการ
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            onClick={handleExportPDF}
+            disabled={loading || filteredTransactions.length === 0}
+            className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white shadow transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <FaFilePdf />
+            ส่งออก PDF
+          </button>
+
+          <button
+            onClick={handleAdd}
+            className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-white shadow transition hover:bg-green-700"
+          >
+            <FaPlus />
+            เพิ่มรายการ
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow overflow-hidden">
-        {/* Table Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b">
+      <div className="rounded-2xl bg-white p-6 shadow">
+        <h2 className="mb-4 text-xl font-bold text-gray-800">กรองข้อมูล</h2>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              วันที่เริ่มต้น
+            </label>
+
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              วันที่สิ้นสุด
+            </label>
+
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => handleEndDateChange(e.target.value)}
+              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              เลือกปี
+            </label>
+
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">-- เลือกปี --</option>
+
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  พ.ศ. {Number(year) + 543}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            พบข้อมูล {filteredTransactions.length.toLocaleString()} รายการ
+          </p>
+
+          <button
+            onClick={handleClearFilter}
+            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition hover:bg-gray-200"
+          >
+            ล้างตัวกรอง
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl bg-white shadow">
+        <div className="border-b p-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            รายงานรายการรายรับรายจ่าย
+          </h2>
+
+          <p className="mt-1 text-gray-500">
+            รายการทั้งหมด {filteredTransactions.length.toLocaleString()} รายการ
+          </p>
+        </div>
+
+        {!loading && filteredTransactions.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 border-b p-6 md:grid-cols-3">
+            <div className="rounded-xl border p-4">
+              <p className="text-sm text-gray-500">รายรับทั้งหมด</p>
+
+              <p className="mt-1 text-xl font-bold text-green-600">
+                +{totalIncome.toLocaleString()} บาท
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-4">
+              <p className="text-sm text-gray-500">รายจ่ายทั้งหมด</p>
+
+              <p className="mt-1 text-xl font-bold text-red-600">
+                -{totalExpense.toLocaleString()} บาท
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-4">
+              <p className="text-sm text-gray-500">คงเหลือ</p>
+
+              <p className="mt-1 text-xl font-bold text-blue-600">
+                {latestBalance.toLocaleString()} บาท
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="flex items-center gap-2 font-semibold text-gray-700">
             <FaList className="text-green-600" />
             รายการทั้งหมด
           </h2>
 
           <span className="text-sm text-gray-500">
-            ทั้งหมด {transactions.length} รายการ
+            ทั้งหมด {filteredTransactions.length.toLocaleString()} รายการ
           </span>
         </div>
 
-        {/* Loading */}
         {loading ? (
           <div className="py-16 text-center text-gray-400">
             กำลังโหลดข้อมูล...
           </div>
-        ) : transactions.length === 0 ? (
+        ) : filteredTransactions.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-gray-400">ยังไม่มีรายการ</p>
+            <p className="text-gray-400">ไม่พบรายการในช่วงที่เลือก</p>
 
             <button
-              onClick={handleAdd}
+              onClick={handleClearFilter}
               className="mt-4 text-green-600 hover:underline"
             >
-              + เพิ่มรายการแรก
+              ล้างตัวกรอง
             </button>
           </div>
         ) : (
@@ -163,126 +668,117 @@ function Transactions() {
             <table className="min-w-full">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-6 py-4 text-left whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-left">
                     วันที่
                   </th>
 
-                  <th className="px-6 py-4 text-left whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-center">
                     ประเภท
                   </th>
 
-                  <th className="px-6 py-4 text-left whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-center">
                     หมวดหมู่
                   </th>
 
-                  <th className="px-6 py-4 text-right whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-right">
                     รายรับ
                   </th>
 
-                  <th className="px-6 py-4 text-right whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-right">
                     รายจ่าย
                   </th>
 
-                  <th className="px-6 py-4 text-right whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-right">
                     คงเหลือ
                   </th>
 
-                  <th className="px-6 py-4 text-left whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-center">
                     หมายเหตุ
                   </th>
 
-                  <th className="px-6 py-4 text-center whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-center">
                     แก้ไข
                   </th>
 
-                  <th className="px-6 py-4 text-center whitespace-nowrap">
+                  <th className="whitespace-nowrap px-6 py-4 text-center">
                     ลบ
                   </th>
                 </tr>
               </thead>
 
-              <tbody className="text-center items-center">
-                {transactions.map((transaction) => (
+              <tbody className="text-center">
+                {filteredTransactions.map((transaction) => (
                   <tr
                     key={transaction.id}
-                    className="border-t hover:bg-gray-50 transition"
+                    className="border-t transition hover:bg-gray-50"
                   >
-                    {/* วันที่ */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       {formatThaiDate(transaction.date)}
                     </td>
 
-                    {/* ประเภท */}
-                    <td className="px-6 py-4 text-center items-center">
+                    <td className="px-6 py-4">
                       {transaction.typeName === "รายรับ" ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
                           <FaArrowUp />
                           {transaction.typeName}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
                           <FaArrowDown />
                           {transaction.typeName || "รายจ่าย"}
                         </span>
                       )}
                     </td>
 
-                    {/* หมวดหมู่ */}
-                    <td className="px-6 py-4 font-medium text-center items-center">
+                    <td className="px-6 py-4 font-medium">
                       {transaction.categoryName || "-"}
                     </td>
 
-                    {/* รายรับ */}
-
-                    <td className="px-6 py-4 text-center items-center">
+                    <td className="px-6 py-4 text-right">
                       {Number(transaction.income) > 0 ? (
                         <span className="font-semibold text-green-600">
-                          +{Number(transaction.income).toLocaleString()}
+                          {Number(transaction.income).toLocaleString()}
                         </span>
                       ) : (
-                        <span className="text-black">-</span>
+                        <span>-</span>
                       )}
                     </td>
 
-                    {/* รายจ่าย */}
-
-                    <td className="px-6 py-4 text-center items-center">
+                    <td className="px-6 py-4 text-right">
                       {Number(transaction.expense) > 0 ? (
                         <span className="font-semibold text-red-600">
-                          -{Number(transaction.expense).toLocaleString()}
+                          {Number(transaction.expense).toLocaleString()}
                         </span>
                       ) : (
-                        <span className="text-black">-</span>
+                        <span>-</span>
                       )}
                     </td>
 
-                    {/* คงเหลือ */}
-                    <td className="px-6 py-4 text-center items-center font-semibold">
+                    <td className="px-6 py-4 text-right font-semibold">
                       {Number(transaction.balance || 0).toLocaleString()}
                     </td>
 
-                    {/* หมายเหตุ */}
-                    <td className="px-6 py-4 text-black text-center items-center max-w-xs truncate">
+                    <td className="max-w-xs truncate px-6 py-4 text-center">
                       {transaction.note || "-"}
                     </td>
 
-                    {/* จัดการ */}
                     <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
+                      <div className="flex justify-center">
                         <button
                           onClick={() => handleEdit(transaction)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white transition"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500 text-white transition hover:bg-yellow-600"
                           title="แก้ไข"
                         >
                           <FaEdit />
                         </button>
                       </div>
                     </td>
+
                     <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
+                      <div className="flex justify-center">
                         <button
                           onClick={() => handleDelete(transaction.id)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500 text-white transition hover:bg-red-600"
                           title="ลบ"
                         >
                           <FaTrash />
@@ -297,13 +793,10 @@ function Transactions() {
         )}
       </div>
 
-      {/* Modal */}
-
       <TransactionModal
         open={modalOpen}
         onClose={() => {
           setModalOpen(false);
-
           setEditTransaction(null);
         }}
         onSuccess={handleSuccess}
