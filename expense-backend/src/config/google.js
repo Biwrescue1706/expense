@@ -3,7 +3,7 @@ const path = require("path");
 
 const keyFile = path.join(
     __dirname,
-    "../gen-lang-client-0768194995-0e62b8f56df9.json"
+    "../../gen-lang-client-0768194995-0e62b8f56df9.json"
 );
 
 const auth = new google.auth.GoogleAuth({
