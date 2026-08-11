@@ -7,15 +7,9 @@ dotenv.config();
 
 const app = express();
 
-// =========================
-// Middleware
-// =========================
 app.use(express.json());
 app.use(cookieParser());
 
-// =========================
-// CORS
-// =========================
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -31,9 +25,6 @@ app.use(
     })
 );
 
-// =========================
-// Routes
-// =========================
 const authRoute = require("./routes/auth.route");
 const typeRoute = require("./routes/type.route");
 const categoryRoute = require("./routes/category.route");
@@ -41,9 +32,7 @@ const transactionRoute = require("./routes/transaction.route");
 const dashboardRoute = require("./routes/dashboard.route");
 const userRoute = require("./routes/user.route");
 
-// =========================
-// Root
-// =========================
+
 app.get("/", (req, res) => {
     res.json({
         success: true,
@@ -51,9 +40,6 @@ app.get("/", (req, res) => {
     });
 });
 
-// =========================
-// API Routes
-// =========================
 app.use("/api/dashboard", dashboardRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
