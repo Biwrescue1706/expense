@@ -145,30 +145,27 @@ function Transactions() {
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    let result = [...transactions];
+  let result = [...transactions];
 
-    if (selectedYear) {
-      result = result.filter((transaction) =>
-        transaction.date?.startsWith(`${selectedYear}-`)
-      );
-    } else {
-      if (startDate) {
-        result = result.filter(
-          (transaction) => transaction.date >= startDate
-        );
-      }
-
-      if (endDate) {
-        result = result.filter(
-          (transaction) => transaction.date <= endDate
-        );
-      }
-    }
-
-    return result.sort((a, b) =>
-      String(b.date || "").localeCompare(String(a.date || ""))
+  if (startDate) {
+    result = result.filter(
+      (transaction) => transaction.date >= startDate
     );
-  }, [transactions, startDate, endDate, selectedYear]);
+  }
+
+  if (endDate) {
+    result = result.filter(
+      (transaction) => transaction.date <= endDate
+    );
+  }
+
+  return result.sort((a, b) =>
+    String(a.date || "").localeCompare(
+      String(b.date || "")
+    )
+  );
+}, [transactions, startDate, endDate]);
+
 
   const totalIncome = filteredTransactions.reduce(
     (sum, transaction) => sum + Number(transaction.income || 0),
