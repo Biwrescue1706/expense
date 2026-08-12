@@ -94,7 +94,7 @@ function Sidebar({ open, setOpen, user }) {
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
-              <img src="../public/BiwBoong.png" alt="mo" />
+              <img src="/BiwBoong.png" alt="mo" />
             </div>
 
             <div>
