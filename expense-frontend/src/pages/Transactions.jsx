@@ -1,5 +1,4 @@
-// expense-frontend/src/pages/Transactions.jsx
-
+//expense-frontend/src/pages/Transactions.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   FaPlus,
@@ -10,28 +9,20 @@ import {
   FaList,
   FaFilePdf,
 } from "react-icons/fa";
-
 import api from "../api/axios";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 import {
   getTransactions,
   deleteTransaction,
 } from "../services/transaction.service";
-
 import TransactionModal from "../components/TransactionModal";
-
 import { successAlert, errorAlert, confirmDelete } from "../utils/alert";
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
   const [user, setUser] = useState(null);
-
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
@@ -44,13 +35,10 @@ function Transactions() {
   const loadTransactions = async () => {
     try {
       setLoading(true);
-
       const data = await getTransactions();
-
       setTransactions(data || []);
     } catch (err) {
       console.error(err);
-
       errorAlert(err.response?.data?.message || "ไม่สามารถโหลดรายการได้");
     } finally {
       setLoading(false);
@@ -60,11 +48,9 @@ function Transactions() {
   const loadUser = async () => {
     try {
       const res = await api.get("/auth/profile");
-
       setUser(res.data.user);
     } catch (err) {
       console.error(err);
-
       errorAlert(
         err.response?.data?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้",
       );
@@ -72,9 +58,7 @@ function Transactions() {
   };
 
   const formatThaiDate = (date) => {
-    if (!date) {
-      return "-";
-    }
+    if (!date) return "-";
 
     const [year, month, day] = date.split("-").map(Number);
 
@@ -113,15 +97,11 @@ function Transactions() {
   const handleDelete = async (id) => {
     const result = await confirmDelete();
 
-    if (!result.isConfirmed) {
-      return;
-    }
+    if (!result.isConfirmed) return;
 
     try {
       await deleteTransaction(id);
-
       successAlert("ลบรายการสำเร็จ");
-
       await loadTransactions();
     } catch (err) {
       errorAlert(err.response?.data?.message || "ไม่สามารถลบรายการได้");
@@ -163,10 +143,7 @@ function Transactions() {
   const availableYears = useMemo(() => {
     const years = transactions
       .map((transaction) => {
-        if (!transaction.date) {
-          return null;
-        }
-
+        if (!transaction.date) return null;
         return transaction.date.substring(0, 4);
       })
       .filter(Boolean);
@@ -215,13 +192,11 @@ function Transactions() {
 
   const arrayBufferToBase64 = (buffer) => {
     let binary = "";
-
     const bytes = new Uint8Array(buffer);
     const chunkSize = 0x8000;
 
     for (let i = 0; i < bytes.length; i += chunkSize) {
       const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-
       binary += String.fromCharCode(...chunk);
     }
 
@@ -240,6 +215,11 @@ function Transactions() {
     }
 
     try {
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -247,7 +227,6 @@ function Transactions() {
       });
 
       const fontUrl = "/fonts/THSarabunNew.ttf";
-
       const response = await fetch(fontUrl);
 
       if (!response.ok) {
@@ -255,13 +234,10 @@ function Transactions() {
       }
 
       const fontBuffer = await response.arrayBuffer();
-
       const fontBase64 = arrayBufferToBase64(fontBuffer);
 
       pdf.addFileToVFS("THSarabunNew.ttf", fontBase64);
-
       pdf.addFont("THSarabunNew.ttf", "THSarabunNew", "normal");
-
       pdf.setFont("THSarabunNew", "normal");
 
       const userName = user?.fullName || user?.FullName || "-";
@@ -282,29 +258,21 @@ function Transactions() {
 
       const tableData = filteredTransactions.map((transaction) => [
         formatThaiDate(transaction.date),
-
         transaction.typeName || "รายจ่าย",
-
         transaction.categoryName || "-",
-
         Number(transaction.income || 0) > 0
-          ? `${Number(transaction.income).toLocaleString()}`
+          ? Number(transaction.income).toLocaleString()
           : "-",
-
         Number(transaction.expense || 0) > 0
-          ? `${Number(transaction.expense).toLocaleString()}`
+          ? Number(transaction.expense).toLocaleString()
           : "-",
-
         Number(transaction.balance || 0).toLocaleString(),
-
         transaction.note || "-",
       ]);
 
       const drawPageHeader = () => {
         pdf.setFont("THSarabunNew", "normal");
-
         pdf.setTextColor(0, 0, 0);
-
         pdf.setFontSize(22);
 
         pdf.text("รายงานรายการรายรับรายจ่าย", 105, 18, {
@@ -331,11 +299,9 @@ function Transactions() {
         pdf.setFontSize(14);
 
         pdf.setTextColor(22, 163, 74);
-
         pdf.text(`รายรับทั้งหมด: ${totalIncome.toLocaleString()} บาท`, 15, 43);
 
         pdf.setTextColor(220, 38, 38);
-
         pdf.text(
           `รายจ่ายทั้งหมด: ${totalExpense.toLocaleString()} บาท`,
           75,
@@ -343,7 +309,6 @@ function Transactions() {
         );
 
         pdf.setTextColor(37, 99, 235);
-
         pdf.text(`คงเหลือ: ${latestBalance.toLocaleString()} บาท`, 155, 43);
 
         pdf.setTextColor(0, 0, 0);
@@ -351,9 +316,7 @@ function Transactions() {
 
       const drawPageFooter = (page, pageCount) => {
         pdf.setFont("THSarabunNew", "normal");
-
         pdf.setFontSize(10);
-
         pdf.setTextColor(0, 0, 0);
 
         pdf.text(`วันที่ออกรายงาน: ${formatThaiDate(today)}`, 105, 287, {
@@ -367,7 +330,6 @@ function Transactions() {
 
       autoTable(pdf, {
         startY: 50,
-
         head: [
           [
             "วันที่",
@@ -379,11 +341,8 @@ function Transactions() {
             "หมายเหตุ",
           ],
         ],
-
         body: tableData,
-
         theme: "grid",
-
         styles: {
           font: "THSarabunNew",
           fontStyle: "normal",
@@ -393,7 +352,6 @@ function Transactions() {
           lineColor: [180, 180, 180],
           lineWidth: 0.3,
         },
-
         headStyles: {
           font: "THSarabunNew",
           fontStyle: "normal",
@@ -404,48 +362,38 @@ function Transactions() {
           lineColor: [150, 150, 150],
           lineWidth: 0.3,
         },
-
         columnStyles: {
           0: {
             cellWidth: 25,
             halign: "center",
           },
-
           1: {
             cellWidth: 20,
             halign: "center",
           },
-
           2: {
             cellWidth: 20,
             halign: "center",
           },
-
           3: {
             cellWidth: 20,
             halign: "right",
           },
-
           4: {
             cellWidth: 20,
             halign: "right",
           },
-
           5: {
             cellWidth: 25,
             halign: "right",
           },
-
           6: {
             cellWidth: "auto",
             halign: "left",
           },
         },
-
         didParseCell: (data) => {
-          if (data.section !== "body") {
-            return;
-          }
+          if (data.section !== "body") return;
 
           if (data.column.index === 3 && data.cell.raw !== "-") {
             data.cell.styles.textColor = [22, 163, 74];
@@ -459,14 +407,12 @@ function Transactions() {
             data.cell.styles.textColor = [37, 99, 235];
           }
         },
-
         margin: {
           top: 50,
           bottom: 20,
           left: 10,
           right: 10,
         },
-
         didDrawPage: () => {
           drawPageHeader();
         },
@@ -476,7 +422,6 @@ function Transactions() {
 
       for (let page = 1; page <= pageCount; page++) {
         pdf.setPage(page);
-
         drawPageFooter(page, pageCount);
       }
 
@@ -495,7 +440,6 @@ function Transactions() {
       successAlert("ส่งออก PDF สำเร็จ");
     } catch (err) {
       console.error(err);
-
       errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
     }
   };
@@ -507,7 +451,6 @@ function Transactions() {
           <h1 className="text-3xl font-bold text-gray-800">
             รายการรายรับรายจ่าย
           </h1>
-
           <p className="mt-1 text-gray-500">
             จัดการรายการรายรับและรายจ่ายของคุณ
           </p>
