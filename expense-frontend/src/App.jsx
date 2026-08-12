@@ -14,6 +14,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AddTransaction = lazy(() => import("./pages/AddTransaction"));
 
 function Loading() {
   return (
@@ -50,6 +51,7 @@ function App() {
                 }
               />
               <Route path="/setting" element={<Settings />} />
+              <Route path="/add-transaction" element={<AddTransaction />} />
             </Route>
           </Route>
 

@@ -39,6 +39,10 @@ exports.deleteTransaction = async (req, res) => {
         const result = await transactionService.remove(req.params.id);
         res.json(result);
     } catch (err) {
-        res.status(400).json({success: false,message: err.message,});
+        res.status(400).json({
+success: false,
+            message: err.message,
+        });
+
     }
 };

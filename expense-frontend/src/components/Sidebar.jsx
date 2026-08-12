@@ -1,16 +1,11 @@
-// expense-frontend/src/components/Sidebar.jsx
-
 import {
   FaChartPie,
   FaMoneyBillWave,
-  FaList,
-  FaTags,
+  FaPlus,
   FaTimes,
-  FaWallet,
   FaSignOutAlt,
   FaCog,
 } from "react-icons/fa";
-
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
@@ -25,18 +20,20 @@ const menus = [
     icon: <FaMoneyBillWave className="text-lg" />,
     path: "/transactions",
   },
-
   {
-    name:"ตั้งค่า",
+    name: "เพิ่มรายการ",
+    icon: <FaPlus className="text-lg" />,
+    path: "/add-transaction",
+  },
+  {
+    name: "ตั้งค่า",
     icon: <FaCog className="text-lg" />,
     path: "/setting",
-  }
+  },
 ];
 
 function Sidebar({ open, setOpen, user }) {
   const navigate = useNavigate();
-
-  // Logout
 
   const handleLogout = async () => {
     try {
@@ -50,160 +47,111 @@ function Sidebar({ open, setOpen, user }) {
     }
   };
 
-  // ชื่อผู้ใช้งาน
   const displayName =
     user?.fullName ||
     `${user?.prefix || ""}${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
     user?.username ||
     "ผู้ใช้งาน";
 
-  // Role
   const roleName = user?.role === "admin" ? "ผู้ดูแลระบบ" : "สมาชิก";
 
-  // ตัวอักษร Avatar
   const avatarText =
     user?.firstName?.charAt(0) || user?.username?.charAt(0) || "U";
 
   return (
     <>
-      {/* Overlay Mobile */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`
-          fixed lg:static
-          top-0 left-0
-          h-screen
-          w-64
-          bg-slate-900
-          text-white
-          z-40
-          transform transition-transform duration-300
-          ${open ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-          flex flex-col
-        `}
+        className={`fixed left-0 top-0 z-40 flex h-screen w-64 transform flex-col bg-slate-900 text-white transition-transform duration-300 lg:static lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        {/*  Logo */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-700">
+        <div className="flex h-16 items-center justify-between border-b border-slate-700 px-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
-              <img src="/BiwBoong.png" alt="mo" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500">
+              <img
+                src="/BiwBoong.png"
+                alt="BiwBoong"
+                className="h-full w-full object-contain"
+              />
             </div>
 
             <div>
               <h2 className="text-base font-bold text-white">
                 บันทึกค่าใช้จ่าย
               </h2>
-
               <p className="text-xs text-slate-400">รายรับรายจ่าย</p>
             </div>
           </div>
 
-          {/* Close Mobile */}
-
           <button
             onClick={() => setOpen(false)}
-            className="lg:hidden text-white hover:text-red-400 transition"
+            className="text-white transition hover:text-red-400 lg:hidden"
           >
             <FaTimes size={20} />
           </button>
         </div>
-        {/* =========================
-            User Profile
-            อยู่ก่อนเมนูหลัก
-        ========================= */}
-        <div className="px-4 pt-5">
-          <div className="bg-slate-100 rounded-xl p-3 flex items-center gap-3">
-            {/* Avatar */}
 
-            <div className="w-10 h-10 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center font-bold text-white uppercase">
+        <div className="px-4 pt-5">
+          <div className="flex items-center gap-3 rounded-xl bg-slate-100 p-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500 font-bold uppercase text-white">
               {avatarText}
             </div>
 
-            {/* User Information */}
-
             <div className="min-w-0">
-              <p className="text-sm text-black font-semibold truncate">
+              <p className="truncate text-sm font-semibold text-black">
                 {displayName}
               </p>
 
-              <p className="text-sm text-slate-400 font-semibold truncate">
+              <p className="truncate text-sm font-semibold text-slate-400">
                 {roleName}
               </p>
-              <p className="text-sm text-green-600 font-semibold truncate">
+
+              <p className="truncate text-sm font-semibold text-green-600">
                 @{user?.username || "-"}
               </p>
             </div>
           </div>
         </div>
-        {/* =========================
-            Menu Title
-        ========================= */}
-        <div className="px-5 pt-5 pb-2 text-xs uppercase tracking-wider text-slate-500">
+
+        <div className="px-5 pb-2 pt-5 text-xs uppercase tracking-wider text-slate-500">
           เมนูหลัก
         </div>
-        {/* =========================
-            Menu
-        ========================= */}
-        <nav className="flex-1 px-3 space-y-2 overflow-y-auto">
+
+        <nav className="flex-1 space-y-2 overflow-y-auto px-3">
           {menus.map((menu) => (
             <NavLink
               key={menu.path}
               to={menu.path}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `
-                flex items-center gap-3
-                rounded-xl
-                px-4 py-3
-                transition-all duration-200
-
-                ${
+                `flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
                   isActive
                     ? "bg-green-500 text-white shadow-lg"
                     : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }
-                `
+                }`
               }
             >
               {menu.icon}
-
               <span>{menu.name}</span>
             </NavLink>
           ))}
         </nav>
-        {/* =========================
-            Footer
-        ========================= */}
-        <div className="border-t border-slate-700 p-5">
-          {/* Logout */}
 
+        <div className="border-t border-slate-700 p-5">
           <button
             onClick={handleLogout}
-            className="
-              w-full
-              flex items-center justify-center gap-2
-              rounded-xl
-              bg-red-500
-              hover:bg-red-600
-              py-3
-              text-white
-              font-medium
-              transition
-            "
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500 py-3 font-medium text-white transition hover:bg-red-600"
           >
             <FaSignOutAlt />
             ออกจากระบบ
           </button>
-
-          {/* Version */}
 
           <div className="mt-4 text-center text-xs text-slate-500">
             Expense Tracker

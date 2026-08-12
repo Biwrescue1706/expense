@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
-
-import { createTransaction } from "../services/transaction.service";
+import { updateTransaction } from "../services/transaction.service";
 import { getTypes } from "../services/type.service";
 import { getCategories } from "../services/category.service";
-
 import { successAlert, errorAlert } from "../utils/alert";
 
-function TransactionModal({ open, onClose, onSuccess }) {
+function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
   const [types, setTypes] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: "",
     typeId: "",
     categoryId: "",
     amount: "",
@@ -20,10 +19,23 @@ function TransactionModal({ open, onClose, onSuccess }) {
   });
 
   useEffect(() => {
-    if (open) {
-      loadTypes();
-    }
-  }, [open]);
+    if (!open || !editTransaction) return;
+
+    setForm({
+      date: editTransaction.date || "",
+      typeId: editTransaction.typeId || "",
+      categoryId: editTransaction.categoryId || "",
+      amount:
+        editTransaction.income > 0
+          ? editTransaction.income
+          : editTransaction.expense > 0
+            ? editTransaction.expense
+            : "",
+      note: editTransaction.note || "",
+    });
+
+    loadTypes();
+  }, [open, editTransaction]);
 
   useEffect(() => {
     if (form.typeId) {
@@ -36,11 +48,9 @@ function TransactionModal({ open, onClose, onSuccess }) {
   const loadTypes = async () => {
     try {
       const data = await getTypes();
-
-      setTypes(data);
+      setTypes(data || []);
     } catch (err) {
       console.error(err);
-
       errorAlert(err.response?.data?.message || "ไม่สามารถโหลดประเภทได้");
     }
   };
@@ -48,13 +58,10 @@ function TransactionModal({ open, onClose, onSuccess }) {
   const loadCategories = async (typeId) => {
     try {
       const data = await getCategories(typeId);
-
-      setCategories(data);
+      setCategories(data || []);
     } catch (err) {
       console.error(err);
-
       setCategories([]);
-
       errorAlert(err.response?.data?.message || "ไม่สามารถโหลดหมวดหมู่ได้");
     }
   };
@@ -68,7 +75,6 @@ function TransactionModal({ open, onClose, onSuccess }) {
         typeId: value,
         categoryId: "",
       }));
-
       return;
     }
 
@@ -78,43 +84,35 @@ function TransactionModal({ open, onClose, onSuccess }) {
     }));
   };
 
-  const resetForm = () => {
-    setForm({
-      date: new Date().toISOString().slice(0, 10),
-      typeId: "",
-      categoryId: "",
-      amount: "",
-      note: "",
-    });
-
-    setCategories([]);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!editTransaction) return;
+
+    if (!form.date) {
+      errorAlert("กรุณาเลือกวันที่");
+      return;
+    }
+
+    if (!form.typeId) {
+      errorAlert("กรุณาเลือกประเภท");
+      return;
+    }
+
+    if (!form.categoryId) {
+      errorAlert("กรุณาเลือกหมวดหมู่");
+      return;
+    }
+
+    if (!form.amount || Number(form.amount) <= 0) {
+      errorAlert("กรุณากรอกจำนวนเงิน");
+      return;
+    }
+
     try {
-      if (!form.date) {
-        errorAlert("กรุณาเลือกวันที่");
-        return;
-      }
+      setLoading(true);
 
-      if (!form.typeId) {
-        errorAlert("กรุณาเลือกประเภท");
-        return;
-      }
-
-      if (!form.categoryId) {
-        errorAlert("กรุณาเลือกหมวดหมู่");
-        return;
-      }
-
-      if (!form.amount) {
-        errorAlert("กรุณากรอกจำนวนเงิน");
-        return;
-      }
-
-      await createTransaction({
+      await updateTransaction(editTransaction.id, {
         date: form.date,
         typeId: form.typeId,
         categoryId: form.categoryId,
@@ -122,62 +120,68 @@ function TransactionModal({ open, onClose, onSuccess }) {
         note: form.note,
       });
 
-      successAlert("บันทึกรายการสำเร็จ");
+      successAlert("แก้ไขรายการสำเร็จ");
 
-      resetForm();
+      await onSuccess();
 
-      onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
 
-      errorAlert(err.response?.data?.message || "บันทึกรายการไม่สำเร็จ");
+      errorAlert(err.response?.data?.message || "แก้ไขรายการไม่สำเร็จ");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
-
-  if (!open) return null;
+  if (!open || !editTransaction) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b p-5">
-          <h2 className="text-xl font-bold">เพิ่มรายการ</h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">แก้ไขรายการ</h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              แก้ไขข้อมูลรายรับหรือรายจ่าย
+            </p>
+          </div>
 
           <button
             type="button"
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700"
+            onClick={onClose}
+            className="text-gray-500 transition hover:text-red-500"
           >
-            <FaTimes />
+            <FaTimes size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 p-6">
           <div>
-            <label className="block mb-1 font-medium">วันที่</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              วันที่
+            </label>
 
             <input
               type="date"
               name="date"
               value={form.date}
               onChange={handleChange}
-              className="w-full border rounded-lg p-3"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
             />
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">ประเภท</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              ประเภท
+            </label>
 
             <select
               name="typeId"
               value={form.typeId}
               onChange={handleChange}
-              className="w-full border rounded-lg p-3"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
             >
               <option value="">เลือกประเภท</option>
 
@@ -190,14 +194,16 @@ function TransactionModal({ open, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">หมวดหมู่</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              หมวดหมู่
+            </label>
 
             <select
               name="categoryId"
               value={form.categoryId}
               onChange={handleChange}
               disabled={!form.typeId}
-              className="w-full border rounded-lg p-3 disabled:bg-gray-100"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20 disabled:bg-gray-100"
             >
               <option value="">
                 {form.typeId ? "เลือกหมวดหมู่" : "กรุณาเลือกประเภทก่อน"}
@@ -212,46 +218,59 @@ function TransactionModal({ open, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">จำนวนเงิน</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              จำนวนเงิน
+            </label>
 
-            <input
-              type="number"
-              name="amount"
-              value={form.amount}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              className="w-full border rounded-lg p-3"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                name="amount"
+                value={form.amount}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-14 text-lg font-semibold outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+              />
+
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                บาท
+              </span>
+            </div>
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">หมายเหตุ</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              หมายเหตุ
+            </label>
 
             <textarea
               name="note"
               value={form.note}
               onChange={handleChange}
               rows={3}
-              className="w-full border rounded-lg p-3"
+              placeholder="รายละเอียดเพิ่มเติม"
+              className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={handleClose}
-              className="border rounded-lg px-5 py-2"
+              onClick={onClose}
+              disabled={loading}
+              className="w-full rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-60"
             >
               ยกเลิก
             </button>
 
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-5 py-2"
+              disabled={loading}
+              className="w-full rounded-xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              บันทึก
+              {loading ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
             </button>
           </div>
         </form>
