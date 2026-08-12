@@ -55,7 +55,7 @@ function Login() {
         {/* Left */}
         <div className="hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-green-600 to-emerald-700 text-white p-12">
           <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-6">
-            <img src="../public/BiwBoong.png" alt="mo" />
+            <img src="/BiwBoong.png" alt="mo" />
           </div>
           <h1 className="text-4xl font-bold mb-4">BiwBoong Finance</h1>
           <h2 className="text-xl font-bold mb-4">Personal Income & Expense Management System</h2>
