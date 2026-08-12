@@ -30,7 +30,7 @@ function Navbar({ setOpen, user }) {
         </button>
 
         <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-          <FaWallet size={18} />
+          <img src="../public/BiwBoong.png" alt="mo" size={18} />
         </div>
 
         <div>

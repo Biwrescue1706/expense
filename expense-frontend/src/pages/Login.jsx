@@ -55,11 +55,10 @@ function Login() {
         {/* Left */}
         <div className="hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-green-600 to-emerald-700 text-white p-12">
           <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-6">
-            <FaWallet size={42} />
+            <img src="../public/BiwBoong.png" alt="mo" />
           </div>
-
-          <h1 className="text-4xl font-bold mb-4">Expense Tracker</h1>
-
+          <h1 className="text-4xl font-bold mb-4">BiwBoong Finance</h1>
+          <h2 className="text-xl font-bold mb-4">Personal Income & Expense Management System</h2>
           <p className="text-center text-green-100 leading-7">
             ระบบบันทึกรายรับรายจ่าย
             <br />
@@ -71,8 +70,12 @@ function Login() {
 
         {/* Right */}
         <div className="p-10 lg:p-14">
-          <h2 className="text-3xl font-bold text-center text-gray-800">เข้าสู่ระบบ</h2>
-          <p className="text-gray-500 text-center mt-2 mb-8">ยินดีต้อนรับกลับ</p>
+          <h2 className="text-3xl font-bold text-center text-gray-800">
+            เข้าสู่ระบบ
+          </h2>
+          <p className="text-gray-500 text-center mt-2 mb-8">
+            ยินดีต้อนรับกลับ
+          </p>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>

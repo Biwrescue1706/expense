@@ -8,6 +8,7 @@ import {
   FaTimes,
   FaWallet,
   FaSignOutAlt,
+  FaCog,
 } from "react-icons/fa";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -24,21 +25,12 @@ const menus = [
     icon: <FaMoneyBillWave className="text-lg" />,
     path: "/transactions",
   },
+
   {
-    name: "หมวดหมู่",
-    icon: <FaList className="text-lg" />,
-    path: "/categories",
-  },
-  {
-    name: "ประเภท",
-    icon: <FaTags className="text-lg" />,
-    path: "/types",
-  },
-  {
-    name: "สมาชิก",
-    icon: <FaWallet className="text-lg" />,
-    path: "/register",
-  },
+    name:"ตั้งค่า",
+    icon: <FaCog className="text-lg" />,
+    path: "/setting",
+  }
 ];
 
 function Sidebar({ open, setOpen, user }) {
@@ -59,7 +51,6 @@ function Sidebar({ open, setOpen, user }) {
   };
 
   // ชื่อผู้ใช้งาน
-
   const displayName =
     user?.fullName ||
     `${user?.prefix || ""}${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
@@ -82,9 +73,8 @@ function Sidebar({ open, setOpen, user }) {
           onClick={() => setOpen(false)}
         />
       )}
-      {/* =========================
-          Sidebar
-      ========================= */}
+
+      {/* Sidebar */}
       <aside
         className={`
           fixed lg:static
@@ -104,7 +94,7 @@ function Sidebar({ open, setOpen, user }) {
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
-              <FaWallet />
+              <img src="../public/BiwBoong.png" alt="mo" />
             </div>
 
             <div>
@@ -144,7 +134,9 @@ function Sidebar({ open, setOpen, user }) {
                 {displayName}
               </p>
 
-              <p className="text-sm text-slate-400 font-semibold truncate">{roleName}</p>
+              <p className="text-sm text-slate-400 font-semibold truncate">
+                {roleName}
+              </p>
               <p className="text-sm text-green-600 font-semibold truncate">
                 @{user?.username || "-"}
               </p>

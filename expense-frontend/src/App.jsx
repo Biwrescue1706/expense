@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route path="/setting" element={<Settings />} />
           </Route>
         </Route>
 
