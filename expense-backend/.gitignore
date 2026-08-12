@@ -3,3 +3,5 @@ node_modules
 .env
 
 service-account.json
+.gen-lang-client-0768194995-5da4696696b3.json
+.gen-lang-client-0768194995-0e62b8f56df9.json
