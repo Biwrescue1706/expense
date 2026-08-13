@@ -15,18 +15,19 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // ==============================
+  // ==========================================
   // PWA INSTALL
-  // ==============================
+  // ==========================================
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
+      // ป้องกัน Chrome แสดง prompt เองทันที
       event.preventDefault();
 
       console.log("PWA: พร้อมติดตั้ง");
 
+      // เก็บ event ไว้ใช้ตอนกดปุ่ม
       setDeferredPrompt(event);
     };
 
@@ -34,21 +35,11 @@ function Login() {
       console.log("PWA: ติดตั้งสำเร็จ");
 
       setDeferredPrompt(null);
-      setIsInstalled(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     window.addEventListener("appinstalled", handleAppInstalled);
-
-    // ตรวจสอบว่าเปิดในโหมดแอปอยู่แล้วหรือไม่
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-
-    if (standalone) {
-      setIsInstalled(true);
-    }
 
     return () => {
       window.removeEventListener(
@@ -60,16 +51,16 @@ function Login() {
     };
   }, []);
 
-  // ==============================
+  // ==========================================
   // INSTALL APP
-  // ==============================
+  // ==========================================
   const handleInstallApp = async () => {
-    // ติดตั้งแล้ว
-    if (isInstalled) {
+    // Chrome ยังไม่พร้อมให้ติดตั้ง
+    if (!deferredPrompt) {
       Swal.fire({
         icon: "info",
-        title: "ติดตั้งแอปแล้ว",
-        text: "ระบบนี้ติดตั้งอยู่ในอุปกรณ์ของคุณแล้ว",
+        title: "ยังไม่พร้อมติดตั้ง",
+        text: "กรุณารอสักครู่แล้วลองกดติดตั้งอีกครั้ง หรือเลือก “ติดตั้งแอป” จากเมนู Chrome",
         confirmButtonText: "ตกลง",
         confirmButtonColor: "#16a34a",
       });
@@ -77,36 +68,32 @@ function Login() {
       return;
     }
 
-    // Chrome พร้อมให้ติดตั้ง
-    if (deferredPrompt) {
+    try {
+      // เปิดหน้าต่าง Native Install App ของ Chrome
       deferredPrompt.prompt();
 
       const { outcome } = await deferredPrompt.userChoice;
 
       console.log("ผลการติดตั้ง:", outcome);
 
-      if (outcome === "accepted") {
-        setIsInstalled(true);
-      }
-
+      // event ใช้ได้ครั้งเดียว
       setDeferredPrompt(null);
+    } catch (error) {
+      console.error("PWA Install Error:", error);
 
-      return;
+      Swal.fire({
+        icon: "error",
+        title: "ไม่สามารถติดตั้งแอปได้",
+        text: "กรุณาลองใหม่อีกครั้ง",
+        confirmButtonText: "ตกลง",
+        confirmButtonColor: "#16a34a",
+      });
     }
-
-    // Chrome ยังไม่ส่ง install prompt
-    Swal.fire({
-      icon: "info",
-      title: "ยังไม่สามารถติดตั้งอัตโนมัติได้",
-      text: "ลองเปิดเมนู ⋮ ของ Chrome แล้วเลือก “ติดตั้งแอป” หรือ “เพิ่มลงในหน้าจอหลัก”",
-      confirmButtonText: "ตกลง",
-      confirmButtonColor: "#16a34a",
-    });
   };
 
-  // ==============================
+  // ==========================================
   // INPUT
-  // ==============================
+  // ==========================================
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -114,9 +101,9 @@ function Login() {
     });
   };
 
-  // ==============================
+  // ==========================================
   // LOGIN
-  // ==============================
+  // ==========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -148,10 +135,11 @@ function Login() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-100 via-white to-blue-100 flex items-center justify-center p-3 sm:p-5 md:p-8">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* =========================
+        {/* =====================================
             LEFT
-        ========================= */}
+        ===================================== */}
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white flex flex-col justify-center items-center px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 lg:px-10 lg:py-14">
+          {/* LOGO */}
           <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-24 lg:h-24 xl:w-28 xl:h-28 rounded-full bg-white/20 flex items-center justify-center mb-4 sm:mb-5 md:mb-6 p-2">
             <img
               src="/BiwBoong.png"
@@ -160,14 +148,17 @@ function Login() {
             />
           </div>
 
+          {/* TITLE */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-bold text-center leading-tight mb-3 sm:mb-4">
             BiwBoong Finance
           </h1>
 
+          {/* SUB TITLE */}
           <h2 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-bold text-center leading-relaxed max-w-md mb-4 sm:mb-5">
             Personal Income & Expense Management System
           </h2>
 
+          {/* DESCRIPTION */}
           <p className="text-center text-green-100 text-sm sm:text-base md:text-lg lg:text-sm xl:text-base leading-7 sm:leading-8">
             ระบบบันทึกรายรับรายจ่าย
             <br />
@@ -177,12 +168,12 @@ function Login() {
           </p>
         </div>
 
-        {/* =========================
+        {/* =====================================
             RIGHT
-        ========================= */}
+        ===================================== */}
         <div className="flex items-center p-5 sm:p-8 md:p-10 lg:p-10 xl:p-14">
           <div className="w-full max-w-lg mx-auto">
-            {/* TITLE */}
+            {/* LOGIN TITLE */}
             <div className="text-center mb-7 sm:mb-8">
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-bold text-gray-800">
                 เข้าสู่ระบบ
@@ -194,7 +185,9 @@ function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-              {/* USERNAME */}
+              {/* =====================================
+                  USERNAME
+              ===================================== */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Username หรือ Email
@@ -216,7 +209,9 @@ function Login() {
                 </div>
               </div>
 
-              {/* PASSWORD */}
+              {/* =====================================
+                  PASSWORD
+              ===================================== */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Password
@@ -236,6 +231,7 @@ function Login() {
                     className="w-full h-12 sm:h-13 md:h-14 pl-11 sm:pl-12 pr-12 text-sm sm:text-base border border-gray-400 rounded-xl bg-white outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
 
+                  {/* SHOW PASSWORD */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -246,7 +242,9 @@ function Login() {
                 </div>
               </div>
 
-              {/* FORGOT PASSWORD */}
+              {/* =====================================
+                  FORGOT PASSWORD
+              ===================================== */}
               <div className="flex justify-end">
                 <Link
                   to="/forgot-password"
@@ -256,7 +254,9 @@ function Login() {
                 </Link>
               </div>
 
-              {/* LOGIN BUTTON */}
+              {/* =====================================
+                  LOGIN BUTTON
+              ===================================== */}
               <button
                 type="submit"
                 disabled={loading}
@@ -265,15 +265,16 @@ function Login() {
                 {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
 
-              {/* INSTALL APP BUTTON */}
+              {/* =====================================
+                  INSTALL APP BUTTON
+              ===================================== */}
               <button
                 type="button"
                 onClick={handleInstallApp}
                 className="w-full h-12 sm:h-13 md:h-14 border-2 border-green-600 text-green-600 hover:bg-green-50 active:scale-[0.99] transition text-base sm:text-lg rounded-xl font-semibold flex items-center justify-center gap-2"
               >
                 <FaDownload />
-
-                {isInstalled ? "ติดตั้งแอปแล้ว" : "ติดตั้งแอป"}
+                ติดตั้งแอป
               </button>
             </form>
           </div>
