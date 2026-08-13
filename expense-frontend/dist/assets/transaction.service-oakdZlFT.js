@@ -1,0 +1,1 @@
+import{t as e}from"./index-LKb-1yFV.js";var t=async t=>{let n=t?{year:t}:{};return(await e.get(`/transactions`,{params:n})).data.data},n=async t=>(await e.post(`/transactions`,t)).data,r=async(t,n)=>(await e.patch(`/transactions/${t}`,n)).data,i=async t=>(await e.delete(`/transactions/${t}`)).data;export{r as i,i as n,t as r,n as t};

@@ -1,0 +1,1 @@
+import{t as e}from"./index-LKb-1yFV.js";var t=async()=>(await e.get(`/types`)).data.data,n=async t=>(await e.post(`/types`,t)).data,r=async(t,n)=>(await e.put(`/types/${t}`,n)).data,i=async t=>(await e.delete(`/types/${t}`)).data;export{r as i,i as n,t as r,n as t};
