@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
@@ -15,7 +15,6 @@ export default defineConfig({
         name: "ระบบบันทึกรายรับรายจ่าย",
         short_name: "รายรับรายจ่าย",
         description: "ระบบบันทึกรายรับรายจ่าย",
-
         lang: "th",
 
         start_url: "/",
@@ -27,14 +26,16 @@ export default defineConfig({
 
         icons: [
           {
-            src: "/BiwBoong.png",
+            src: "/BiwBoong192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any maskable",
           },
           {
-            src: "/BiwBoong.png",
+            src: "/BiwBoong512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
