@@ -12,6 +12,10 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: "auto",
 
+      devOptions: {
+        enabled: true,
+      },
+
       manifest: {
         name: "ระบบบันทึกรายรับรายจ่าย",
         short_name: "รายรับรายจ่าย",

@@ -7,6 +7,9 @@ import api from "../api/axios";
 function Login() {
   const navigate = useNavigate();
 
+  // ==========================================
+  // LOGIN
+  // ==========================================
   const [form, setForm] = useState({
     username: "",
     password: "",
@@ -16,38 +19,63 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   // ==========================================
-  // PWA INSTALL
+  // PWA
   // ==========================================
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [installedApp, setInstalledApp] = useState(false);
+  const [installAvailable, setInstallAvailable] = useState(
+    !!window.__deferredPrompt,
+  );
 
+  // ==========================================
+  // PWA EVENT
+  // ==========================================
   useEffect(() => {
-    const handleBeforeInstallPrompt = (event) => {
-      // ป้องกัน Chrome แสดง prompt เองทันที
-      event.preventDefault();
+    // ตรวจสอบว่าเปิดจาก App ที่ติดตั้งแล้วหรือไม่
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
 
-      console.log("PWA: พร้อมติดตั้ง");
+    if (isStandalone) {
+      setInstalledApp(true);
+    }
 
-      // เก็บ event ไว้ใช้ตอนกดปุ่ม
-      setDeferredPrompt(event);
+    // ==========================================
+    // PWA พร้อมติดตั้ง
+    // ==========================================
+    const handleInstallAvailable = () => {
+      console.log("Login: PWA พร้อมติดตั้ง");
+
+      setInstallAvailable(true);
     };
 
+    // ==========================================
+    // ติดตั้งสำเร็จ
+    // ==========================================
     const handleAppInstalled = () => {
-      console.log("PWA: ติดตั้งสำเร็จ");
+      console.log("PWA was installed");
 
-      setDeferredPrompt(null);
+      setInstalledApp(true);
+      setInstallAvailable(false);
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    // กรณี main.jsx ได้ event ไปก่อน Login โหลด
+    if (window.__deferredPrompt) {
+      console.log("Login: พบ deferredPrompt ที่ main.jsx เก็บไว้แล้ว");
 
-    window.addEventListener("appinstalled", handleAppInstalled);
+      setInstallAvailable(true);
+    }
+
+    window.addEventListener("pwa-install-available", handleInstallAvailable);
+
+    window.addEventListener("pwa-installed", handleAppInstalled);
 
     return () => {
       window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
+        "pwa-install-available",
+        handleInstallAvailable,
       );
 
-      window.removeEventListener("appinstalled", handleAppInstalled);
+      window.removeEventListener("pwa-installed", handleAppInstalled);
     };
   }, []);
 
@@ -55,12 +83,24 @@ function Login() {
   // INSTALL APP
   // ==========================================
   const handleInstallApp = async () => {
-    // Chrome ยังไม่พร้อมให้ติดตั้ง
-    if (!deferredPrompt) {
+    console.log("installApp:", {
+      userAgent: navigator.userAgent,
+      os: navigator.platform,
+      browser: "Chrome / Edge",
+    });
+
+    // ==========================================
+    // ตรวจสอบว่าติดตั้งเป็น App แล้วหรือไม่
+    // ==========================================
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+
+    if (isStandalone || installedApp) {
       Swal.fire({
         icon: "info",
-        title: "ยังไม่พร้อมติดตั้ง",
-        text: "กรุณารอสักครู่แล้วลองกดติดตั้งอีกครั้ง หรือเลือก “ติดตั้งแอป” จากเมนู Chrome",
+        title: "ติดตั้งแอปแล้ว",
+        text: "ระบบบันทึกรายรับรายจ่ายติดตั้งอยู่บนเครื่องนี้แล้ว",
         confirmButtonText: "ตกลง",
         confirmButtonColor: "#16a34a",
       });
@@ -68,16 +108,65 @@ function Login() {
       return;
     }
 
+    // ==========================================
+    // ดึง Prompt จาก main.jsx
+    // ==========================================
+    const promptEvent = window.__deferredPrompt;
+
+    console.log("deferredPrompt:", promptEvent);
+
+    // ==========================================
+    // ไม่มี Prompt
+    // ==========================================
+    if (!promptEvent) {
+      console.log("Install prompt is not available.");
+
+      Swal.fire({
+        icon: "info",
+        title: "ยังไม่พร้อมติดตั้ง",
+        html: `
+          <div style="line-height: 1.8;">
+            <p>
+              Chrome ยังไม่พร้อมแสดงหน้าต่างติดตั้ง
+            </p>
+
+            <p style="margin-top: 10px;">
+              หากต้องการติดตั้งตอนนี้
+              ให้กดเมนู <b>⋮</b> ของ Chrome
+              แล้วเลือก <b>ติดตั้งแอป</b>
+            </p>
+          </div>
+        `,
+        confirmButtonText: "ตกลง",
+        confirmButtonColor: "#16a34a",
+      });
+
+      return;
+    }
+
+    // ==========================================
+    // เปิดหน้าต่าง Install ของ Chrome
+    // ==========================================
     try {
-      // เปิดหน้าต่าง Native Install App ของ Chrome
-      deferredPrompt.prompt();
+      console.log("กำลังเปิดหน้าต่างติดตั้ง PWA...");
 
-      const { outcome } = await deferredPrompt.userChoice;
+      promptEvent.prompt();
 
-      console.log("ผลการติดตั้ง:", outcome);
+      // รอผลจากผู้ใช้
+      const { outcome } = await promptEvent.userChoice;
 
-      // event ใช้ได้ครั้งเดียว
-      setDeferredPrompt(null);
+      console.log("User response to the install prompt:", outcome);
+
+      if (outcome === "accepted") {
+        console.log("PWA install accepted");
+      } else {
+        console.log("PWA install dismissed");
+      }
+
+      // Prompt ใช้ได้ครั้งเดียว
+      window.__deferredPrompt = null;
+
+      setInstallAvailable(false);
     } catch (error) {
       console.error("PWA Install Error:", error);
 
@@ -132,6 +221,9 @@ function Login() {
     }
   };
 
+  // ==========================================
+  // UI
+  // ==========================================
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-100 via-white to-blue-100 flex items-center justify-center p-3 sm:p-5 md:p-8">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
@@ -185,9 +277,7 @@ function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-              {/* =====================================
-                  USERNAME
-              ===================================== */}
+              {/* USERNAME */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Username หรือ Email
@@ -209,9 +299,7 @@ function Login() {
                 </div>
               </div>
 
-              {/* =====================================
-                  PASSWORD
-              ===================================== */}
+              {/* PASSWORD */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Password
@@ -242,9 +330,7 @@ function Login() {
                 </div>
               </div>
 
-              {/* =====================================
-                  FORGOT PASSWORD
-              ===================================== */}
+              {/* FORGOT PASSWORD */}
               <div className="flex justify-end">
                 <Link
                   to="/forgot-password"
@@ -254,9 +340,7 @@ function Login() {
                 </Link>
               </div>
 
-              {/* =====================================
-                  LOGIN BUTTON
-              ===================================== */}
+              {/* LOGIN BUTTON */}
               <button
                 type="submit"
                 disabled={loading}
@@ -268,6 +352,7 @@ function Login() {
               {/* =====================================
                   INSTALL APP BUTTON
               ===================================== */}
+
               <button
                 type="button"
                 onClick={handleInstallApp}
