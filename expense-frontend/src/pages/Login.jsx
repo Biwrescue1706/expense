@@ -15,26 +15,40 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // PWA Install
+  // ==============================
+  // PWA INSTALL
+  // ==============================
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [canInstall, setCanInstall] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
 
+      console.log("PWA: พร้อมติดตั้ง");
+
       setDeferredPrompt(event);
-      setCanInstall(true);
     };
 
     const handleAppInstalled = () => {
+      console.log("PWA: ติดตั้งสำเร็จ");
+
       setDeferredPrompt(null);
-      setCanInstall(false);
+      setIsInstalled(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     window.addEventListener("appinstalled", handleAppInstalled);
+
+    // ตรวจสอบว่าเปิดในโหมดแอปอยู่แล้วหรือไม่
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+
+    if (standalone) {
+      setIsInstalled(true);
+    }
 
     return () => {
       window.removeEventListener(
@@ -46,19 +60,53 @@ function Login() {
     };
   }, []);
 
+  // ==============================
+  // INSTALL APP
+  // ==============================
   const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
+    // ติดตั้งแล้ว
+    if (isInstalled) {
+      Swal.fire({
+        icon: "info",
+        title: "ติดตั้งแอปแล้ว",
+        text: "ระบบนี้ติดตั้งอยู่ในอุปกรณ์ของคุณแล้ว",
+        confirmButtonText: "ตกลง",
+        confirmButtonColor: "#16a34a",
+      });
 
-    deferredPrompt.prompt();
+      return;
+    }
 
-    const { outcome } = await deferredPrompt.userChoice;
+    // Chrome พร้อมให้ติดตั้ง
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
 
-    console.log("ผลการติดตั้ง:", outcome);
+      const { outcome } = await deferredPrompt.userChoice;
 
-    setDeferredPrompt(null);
-    setCanInstall(false);
+      console.log("ผลการติดตั้ง:", outcome);
+
+      if (outcome === "accepted") {
+        setIsInstalled(true);
+      }
+
+      setDeferredPrompt(null);
+
+      return;
+    }
+
+    // Chrome ยังไม่ส่ง install prompt
+    Swal.fire({
+      icon: "info",
+      title: "ยังไม่สามารถติดตั้งอัตโนมัติได้",
+      text: "ลองเปิดเมนู ⋮ ของ Chrome แล้วเลือก “ติดตั้งแอป” หรือ “เพิ่มลงในหน้าจอหลัก”",
+      confirmButtonText: "ตกลง",
+      confirmButtonColor: "#16a34a",
+    });
   };
 
+  // ==============================
+  // INPUT
+  // ==============================
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -66,6 +114,9 @@ function Login() {
     });
   };
 
+  // ==============================
+  // LOGIN
+  // ==============================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -97,7 +148,9 @@ function Login() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-100 via-white to-blue-100 flex items-center justify-center p-3 sm:p-5 md:p-8">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* LEFT */}
+        {/* =========================
+            LEFT
+        ========================= */}
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white flex flex-col justify-center items-center px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 lg:px-10 lg:py-14">
           <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-24 lg:h-24 xl:w-28 xl:h-28 rounded-full bg-white/20 flex items-center justify-center mb-4 sm:mb-5 md:mb-6 p-2">
             <img
@@ -124,9 +177,12 @@ function Login() {
           </p>
         </div>
 
-        {/* RIGHT */}
+        {/* =========================
+            RIGHT
+        ========================= */}
         <div className="flex items-center p-5 sm:p-8 md:p-10 lg:p-10 xl:p-14">
           <div className="w-full max-w-lg mx-auto">
+            {/* TITLE */}
             <div className="text-center mb-7 sm:mb-8">
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-bold text-gray-800">
                 เข้าสู่ระบบ
@@ -200,7 +256,7 @@ function Login() {
                 </Link>
               </div>
 
-              {/* LOGIN */}
+              {/* LOGIN BUTTON */}
               <button
                 type="submit"
                 disabled={loading}
@@ -209,17 +265,16 @@ function Login() {
                 {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
 
-              {/* INSTALL APP */}
-              {canInstall && (
-                <button
-                  type="button"
-                  onClick={handleInstallApp}
-                  className="w-full h-12 sm:h-13 md:h-14 border-2 border-green-600 text-green-600 hover:bg-green-50 active:scale-[0.99] transition text-base sm:text-lg rounded-xl font-semibold flex items-center justify-center gap-2"
-                >
-                  <FaDownload />
-                  ติดตั้งแอป
-                </button>
-              )}
+              {/* INSTALL APP BUTTON */}
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="w-full h-12 sm:h-13 md:h-14 border-2 border-green-600 text-green-600 hover:bg-green-50 active:scale-[0.99] transition text-base sm:text-lg rounded-xl font-semibold flex items-center justify-center gap-2"
+              >
+                <FaDownload />
+
+                {isInstalled ? "ติดตั้งแอปแล้ว" : "ติดตั้งแอป"}
+              </button>
             </form>
           </div>
         </div>
