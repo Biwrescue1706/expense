@@ -1,1 +1,0 @@
-import{t as e}from"./index-LKb-1yFV.js";var t=async t=>(await e.get(`/categories`,{params:{type:t}})).data.data,n=async t=>(await e.post(`/categories`,t)).data,r=async(t,n)=>(await e.put(`/categories/${t}`,n)).data,i=async t=>(await e.delete(`/categories/${t}`)).data;export{r as i,i as n,t as r,n as t};
