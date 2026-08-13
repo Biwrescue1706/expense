@@ -11,10 +11,14 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
 
+      // สร้างและลงทะเบียน Service Worker
+      injectRegister: "auto",
+
       manifest: {
         name: "ระบบบันทึกรายรับรายจ่าย",
         short_name: "รายรับรายจ่าย",
         description: "ระบบบันทึกรายรับรายจ่าย",
+
         lang: "th",
 
         start_url: "/",
@@ -38,6 +42,10 @@ export default defineConfig({
             purpose: "any maskable",
           },
         ],
+      },
+
+      workbox: {
+        cleanupOutdatedCaches: true,
       },
     }),
   ],
