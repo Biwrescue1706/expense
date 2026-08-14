@@ -1,3 +1,5 @@
+// src/pages/Transactions.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import {
   FaArrowUp,
@@ -7,23 +9,34 @@ import {
   FaList,
   FaFilePdf,
 } from "react-icons/fa";
+
 import api from "../api/axios";
+
 import {
   getTransactions,
   deleteTransaction,
 } from "../services/transaction.service";
+
 import TransactionModal from "../components/TransactionModal";
+
 import { successAlert, errorAlert, confirmDelete } from "../utils/alert";
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
+
   const [user, setUser] = useState(null);
+
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
+
+  // =========================================================
+  // LOAD DATA
+  // =========================================================
 
   useEffect(() => {
     loadTransactions();
@@ -33,10 +46,13 @@ function Transactions() {
   const loadTransactions = async () => {
     try {
       setLoading(true);
+
       const data = await getTransactions();
+
       setTransactions(data || []);
     } catch (err) {
       console.error(err);
+
       errorAlert(err.response?.data?.message || "ไม่สามารถโหลดรายการได้");
     } finally {
       setLoading(false);
@@ -46,14 +62,20 @@ function Transactions() {
   const loadUser = async () => {
     try {
       const res = await api.get("/auth/profile");
+
       setUser(res.data.user);
     } catch (err) {
       console.error(err);
+
       errorAlert(
-        err.response?.data?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้"
+        err.response?.data?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้",
       );
     }
   };
+
+  // =========================================================
+  // DATE
+  // =========================================================
 
   const formatThaiDate = (date) => {
     if (!date) return "-";
@@ -82,6 +104,10 @@ function Transactions() {
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
 
+  // =========================================================
+  // EDIT / DELETE
+  // =========================================================
+
   const handleEdit = (transaction) => {
     setEditTransaction(transaction);
     setModalOpen(true);
@@ -94,7 +120,9 @@ function Transactions() {
 
     try {
       await deleteTransaction(id);
+
       successAlert("ลบรายการสำเร็จ");
+
       await loadTransactions();
     } catch (err) {
       errorAlert(err.response?.data?.message || "ไม่สามารถลบรายการได้");
@@ -104,6 +132,10 @@ function Transactions() {
   const handleSuccess = async () => {
     await loadTransactions();
   };
+
+  // =========================================================
+  // FILTER
+  // =========================================================
 
   const handleStartDateChange = (value) => {
     setSelectedYear("");
@@ -133,10 +165,15 @@ function Transactions() {
     setEndDate("");
   };
 
+  // =========================================================
+  // AVAILABLE YEARS
+  // =========================================================
+
   const availableYears = useMemo(() => {
     const years = transactions
       .map((transaction) => {
         if (!transaction.date) return null;
+
         return transaction.date.substring(0, 4);
       })
       .filter(Boolean);
@@ -144,54 +181,77 @@ function Transactions() {
     return [...new Set(years)].sort((a, b) => Number(b) - Number(a));
   }, [transactions]);
 
+  // =========================================================
+  // FILTERED TRANSACTIONS
+  // =========================================================
+
   const filteredTransactions = useMemo(() => {
-  let result = [...transactions];
+    let result = [...transactions];
 
-  if (startDate) {
-    result = result.filter(
-      (transaction) => transaction.date >= startDate
+    if (startDate) {
+      result = result.filter((transaction) => transaction.date >= startDate);
+    }
+
+    if (endDate) {
+      result = result.filter((transaction) => transaction.date <= endDate);
+    }
+
+    // เรียงวันที่เก่า -> ใหม่
+    return result.sort((a, b) =>
+      String(a.date || "").localeCompare(String(b.date || "")),
     );
-  }
+  }, [transactions, startDate, endDate]);
 
-  if (endDate) {
-    result = result.filter(
-      (transaction) => transaction.date <= endDate
+  // =========================================================
+  // SUMMARY
+  // =========================================================
+
+  // รวมรายรับทั้งหมด
+  const totalIncome = useMemo(() => {
+    return filteredTransactions.reduce(
+      (sum, transaction) => sum + Number(transaction.income || 0),
+      0,
     );
-  }
+  }, [filteredTransactions]);
 
-  return result.sort((a, b) =>
-    String(a.date || "").localeCompare(
-      String(b.date || "")
-    )
-  );
-}, [transactions, startDate, endDate]);
+  // รวมรายจ่ายทั้งหมด
+  const totalExpense = useMemo(() => {
+    return filteredTransactions.reduce(
+      (sum, transaction) => sum + Number(transaction.expense || 0),
+      0,
+    );
+  }, [filteredTransactions]);
 
+  // =========================================================
+  // IMPORTANT
+  // เอา BALANCE ของรายการสุดท้าย
+  // =========================================================
 
-  const totalIncome = filteredTransactions.reduce(
-    (sum, transaction) => sum + Number(transaction.income || 0),
-    0
-  );
+  const latestBalance = useMemo(() => {
+    if (filteredTransactions.length === 0) {
+      return 0;
+    }
 
-  const totalExpense = filteredTransactions.reduce(
-    (sum, transaction) => sum + Number(transaction.expense || 0),
-    0
-  );
+    const lastTransaction =
+      filteredTransactions[filteredTransactions.length - 1];
 
-  const latestBalance =
-    filteredTransactions.length > 0
-      ? Number(filteredTransactions[0].balance || 0)
-      : 0;
+    return Number(lastTransaction.balance || 0);
+  }, [filteredTransactions]);
+
+  // =========================================================
+  // PDF
+  // =========================================================
 
   const arrayBufferToBase64 = (buffer) => {
     let binary = "";
+
     const bytes = new Uint8Array(buffer);
+
     const chunkSize = 0x8000;
 
     for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(
-        i,
-        Math.min(i + chunkSize, bytes.length)
-      );
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+
       binary += String.fromCharCode(...chunk);
     }
 
@@ -201,11 +261,13 @@ function Transactions() {
   const handleExportPDF = async () => {
     if (startDate && endDate && startDate > endDate) {
       errorAlert("วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด");
+
       return;
     }
 
     if (filteredTransactions.length === 0) {
       errorAlert("ไม่มีข้อมูลในช่วงวันที่หรือปีที่เลือก");
+
       return;
     }
 
@@ -221,7 +283,12 @@ function Transactions() {
         format: "a4",
       });
 
+      // -----------------------------------------------------
+      // FONT
+      // -----------------------------------------------------
+
       const fontUrl = "/fonts/THSarabunNew.ttf";
+
       const response = await fetch(fontUrl);
 
       if (!response.ok) {
@@ -229,17 +296,32 @@ function Transactions() {
       }
 
       const fontBuffer = await response.arrayBuffer();
+
       const fontBase64 = arrayBufferToBase64(fontBuffer);
 
       pdf.addFileToVFS("THSarabunNew.ttf", fontBase64);
+
       pdf.addFont("THSarabunNew.ttf", "THSarabunNew", "normal");
+
       pdf.setFont("THSarabunNew", "normal");
+
+      // -----------------------------------------------------
+      // USER
+      // -----------------------------------------------------
 
       const userName = user?.fullName || user?.FullName || "-";
 
+      // -----------------------------------------------------
+      // PDF TRANSACTIONS
+      // -----------------------------------------------------
+
       const pdfTransactions = [...filteredTransactions].sort((a, b) =>
-        String(a.date || "").localeCompare(String(b.date || ""))
+        String(a.date || "").localeCompare(String(b.date || "")),
       );
+
+      // -----------------------------------------------------
+      // REPORT DATE
+      // -----------------------------------------------------
 
       const reportStartDate =
         startDate ||
@@ -255,23 +337,39 @@ function Transactions() {
 
       const today = new Date().toISOString().split("T")[0];
 
+      // -----------------------------------------------------
+      // PDF TABLE DATA
+      // -----------------------------------------------------
+
       const tableData = pdfTransactions.map((transaction) => [
         formatThaiDate(transaction.date),
+
         transaction.typeName || "รายจ่าย",
+
         transaction.categoryName || "-",
+
         Number(transaction.income || 0) > 0
           ? Number(transaction.income).toLocaleString()
           : "-",
+
         Number(transaction.expense || 0) > 0
           ? Number(transaction.expense).toLocaleString()
           : "-",
+
         Number(transaction.balance || 0).toLocaleString(),
+
         transaction.note || "-",
       ]);
 
+      // -----------------------------------------------------
+      // HEADER
+      // -----------------------------------------------------
+
       const drawPageHeader = () => {
         pdf.setFont("THSarabunNew", "normal");
+
         pdf.setTextColor(0, 0, 0);
+
         pdf.setFontSize(22);
 
         pdf.text("รายงานรายการรายรับรายจ่าย", 105, 18, {
@@ -279,63 +377,68 @@ function Transactions() {
         });
 
         pdf.setFontSize(15);
+
         pdf.text(userName, 15, 27);
 
         pdf.text(
           `ช่วงวันที่: ${formatThaiDate(reportStartDate)} - ${formatThaiDate(
-            reportEndDate
+            reportEndDate,
           )}`,
           15,
-          35
+          35,
         );
 
         pdf.setFontSize(14);
 
+        // รายรับ
         pdf.setTextColor(22, 163, 74);
-        pdf.text(
-          `รายรับทั้งหมด: ${totalIncome.toLocaleString()} บาท`,
-          15,
-          43
-        );
 
+        pdf.text(`รายรับทั้งหมด: ${totalIncome.toLocaleString()} บาท`, 15, 43);
+
+        // รายจ่าย
         pdf.setTextColor(220, 38, 38);
+
         pdf.text(
           `รายจ่ายทั้งหมด: ${totalExpense.toLocaleString()} บาท`,
           75,
-          43
+          43,
         );
 
+        // คงเหลือ
         pdf.setTextColor(37, 99, 235);
-        pdf.text(
-          `คงเหลือ: ${latestBalance.toLocaleString()} บาท`,
-          155,
-          43
-        );
+
+        pdf.text(`คงเหลือ: ${latestBalance.toLocaleString()} บาท`, 155, 43);
 
         pdf.setTextColor(0, 0, 0);
       };
 
+      // -----------------------------------------------------
+      // FOOTER
+      // -----------------------------------------------------
+
       const drawPageFooter = (page, pageCount) => {
         pdf.setFont("THSarabunNew", "normal");
+
         pdf.setFontSize(10);
+
         pdf.setTextColor(0, 0, 0);
 
-        pdf.text(
-          `วันที่ออกรายงาน: ${formatThaiDate(today)}`,
-          105,
-          287,
-          {
-            align: "center",
-          }
-        );
+        pdf.text(`วันที่ออกรายงาน: ${formatThaiDate(today)}`, 105, 287, {
+          align: "center",
+        });
 
         pdf.text(`หน้า ${page} / ${pageCount}`, 200, 287, {
           align: "right",
         });
       };
 
+      // -----------------------------------------------------
+      // TABLE
+      // -----------------------------------------------------
+
       autoTable(pdf, {
         startY: 50,
+
         head: [
           [
             "วันที่",
@@ -347,8 +450,11 @@ function Transactions() {
             "หมายเหตุ",
           ],
         ],
+
         body: tableData,
+
         theme: "grid",
+
         styles: {
           font: "THSarabunNew",
           fontStyle: "normal",
@@ -358,6 +464,7 @@ function Transactions() {
           lineColor: [180, 180, 180],
           lineWidth: 0.3,
         },
+
         headStyles: {
           font: "THSarabunNew",
           fontStyle: "normal",
@@ -368,56 +475,99 @@ function Transactions() {
           lineColor: [150, 150, 150],
           lineWidth: 0.3,
         },
-        columnStyles: {
-          0: { cellWidth: 25, halign: "center" },
-          1: { cellWidth: 20, halign: "center" },
-          2: { cellWidth: 20, halign: "center" },
-          3: { cellWidth: 20, halign: "right" },
-          4: { cellWidth: 20, halign: "right" },
-          5: { cellWidth: 25, halign: "right" },
-          6: { cellWidth: "auto", halign: "left" },
-        },
-        didParseCell: (data) => {
-          if (data.section !== "body") return;
 
+        columnStyles: {
+          0: {
+            cellWidth: 25,
+            halign: "center",
+          },
+
+          1: {
+            cellWidth: 20,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 20,
+            halign: "center",
+          },
+
+          3: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          4: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          5: {
+            cellWidth: 25,
+            halign: "right",
+          },
+
+          6: {
+            cellWidth: "auto",
+            halign: "left",
+          },
+        },
+
+        didParseCell: (data) => {
+          if (data.section !== "body") {
+            return;
+          }
+
+          // รายรับ
           if (data.column.index === 3 && data.cell.raw !== "-") {
             data.cell.styles.textColor = [22, 163, 74];
           }
 
+          // รายจ่าย
           if (data.column.index === 4 && data.cell.raw !== "-") {
             data.cell.styles.textColor = [220, 38, 38];
           }
 
+          // คงเหลือ
           if (data.column.index === 5) {
             data.cell.styles.textColor = [37, 99, 235];
           }
         },
+
         margin: {
           top: 50,
           bottom: 20,
           left: 10,
           right: 10,
         },
+
         didDrawPage: () => {
           drawPageHeader();
         },
       });
 
+      // -----------------------------------------------------
+      // PAGE NUMBER
+      // -----------------------------------------------------
+
       const pageCount = pdf.internal.getNumberOfPages();
 
       for (let page = 1; page <= pageCount; page++) {
         pdf.setPage(page);
+
         drawPageFooter(page, pageCount);
       }
+
+      // -----------------------------------------------------
+      // FILE NAME
+      // -----------------------------------------------------
 
       let fileName = "รายงานรายรับรายจ่าย";
 
       if (selectedYear) {
         fileName += `_พ.ศ.${Number(selectedYear) + 543}`;
       } else if (startDate || endDate) {
-        fileName += `_${startDate || "เริ่มต้น"}_ถึง_${
-          endDate || "สิ้นสุด"
-        }`;
+        fileName += `_${startDate || "เริ่มต้น"}_ถึง_${endDate || "สิ้นสุด"}`;
       } else {
         fileName += `_${today}`;
       }
@@ -427,17 +577,24 @@ function Transactions() {
       successAlert("ส่งออก PDF สำเร็จ");
     } catch (err) {
       console.error(err);
+
       errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
     }
   };
 
+  // =========================================================
+  // UI
+  // =========================================================
+
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
             รายการรายรับรายจ่าย
           </h1>
+
           <p className="mt-1 text-gray-500">
             จัดการรายการรายรับและรายจ่ายของคุณ
           </p>
@@ -453,12 +610,12 @@ function Transactions() {
         </button>
       </div>
 
+      {/* FILTER */}
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-bold text-gray-800">
-          กรองข้อมูล
-        </h2>
+        <h2 className="mb-4 text-xl font-bold text-gray-800">กรองข้อมูล</h2>
 
         <div className="grid gap-4 md:grid-cols-3">
+          {/* START DATE */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
               วันที่เริ่มต้น
@@ -472,6 +629,7 @@ function Transactions() {
             />
           </div>
 
+          {/* END DATE */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
               วันที่สิ้นสุด
@@ -485,6 +643,7 @@ function Transactions() {
             />
           </div>
 
+          {/* YEAR */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
               เลือกปี
@@ -520,7 +679,9 @@ function Transactions() {
         </div>
       </div>
 
+      {/* REPORT */}
       <div className="overflow-hidden rounded-2xl bg-white shadow">
+        {/* REPORT HEADER */}
         <div className="border-b p-6">
           <h2 className="text-2xl font-bold text-gray-800">
             รายงานรายการรายรับรายจ่าย
@@ -531,8 +692,10 @@ function Transactions() {
           </p>
         </div>
 
+        {/* SUMMARY */}
         {!loading && filteredTransactions.length > 0 && (
           <div className="grid grid-cols-1 gap-4 border-b p-6 md:grid-cols-3">
+            {/* INCOME */}
             <div className="rounded-xl border p-4">
               <p className="text-sm text-gray-500">รายรับทั้งหมด</p>
 
@@ -541,6 +704,7 @@ function Transactions() {
               </p>
             </div>
 
+            {/* EXPENSE */}
             <div className="rounded-xl border p-4">
               <p className="text-sm text-gray-500">รายจ่ายทั้งหมด</p>
 
@@ -549,6 +713,7 @@ function Transactions() {
               </p>
             </div>
 
+            {/* BALANCE */}
             <div className="rounded-xl border p-4">
               <p className="text-sm text-gray-500">คงเหลือ</p>
 
@@ -559,6 +724,7 @@ function Transactions() {
           </div>
         )}
 
+        {/* TABLE HEADER */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="flex items-center gap-2 font-semibold text-gray-700">
             <FaList className="text-green-600" />
@@ -570,6 +736,7 @@ function Transactions() {
           </span>
         </div>
 
+        {/* TABLE */}
         {loading ? (
           <div className="py-16 text-center text-gray-400">
             กำลังโหลดข้อมูล...
@@ -593,27 +760,35 @@ function Transactions() {
                   <th className="whitespace-nowrap px-6 py-4 text-left">
                     วันที่
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-center">
                     ประเภท
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-center">
                     หมวดหมู่
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-right">
                     รายรับ
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-right">
                     รายจ่าย
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-right">
                     คงเหลือ
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-center">
                     หมายเหตุ
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-center">
                     แก้ไข
                   </th>
+
                   <th className="whitespace-nowrap px-6 py-4 text-center">
                     ลบ
                   </th>
@@ -626,28 +801,34 @@ function Transactions() {
                     key={transaction.id}
                     className="border-t transition hover:bg-gray-50"
                   >
+                    {/* DATE */}
                     <td className="whitespace-nowrap px-6 py-4">
                       {formatThaiDate(transaction.date)}
                     </td>
 
+                    {/* TYPE */}
                     <td className="px-6 py-4">
                       {transaction.typeName === "รายรับ" ? (
                         <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
                           <FaArrowUp />
+
                           {transaction.typeName}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
                           <FaArrowDown />
+
                           {transaction.typeName || "รายจ่าย"}
                         </span>
                       )}
                     </td>
 
+                    {/* CATEGORY */}
                     <td className="px-6 py-4 font-medium">
                       {transaction.categoryName || "-"}
                     </td>
 
+                    {/* INCOME */}
                     <td className="px-6 py-4 text-right">
                       {Number(transaction.income) > 0 ? (
                         <span className="font-semibold text-green-600">
@@ -658,6 +839,7 @@ function Transactions() {
                       )}
                     </td>
 
+                    {/* EXPENSE */}
                     <td className="px-6 py-4 text-right">
                       {Number(transaction.expense) > 0 ? (
                         <span className="font-semibold text-red-600">
@@ -668,14 +850,17 @@ function Transactions() {
                       )}
                     </td>
 
+                    {/* BALANCE */}
                     <td className="px-6 py-4 text-right font-semibold">
                       {Number(transaction.balance || 0).toLocaleString()}
                     </td>
 
+                    {/* NOTE */}
                     <td className="max-w-xs truncate px-6 py-4 text-center">
                       {transaction.note || "-"}
                     </td>
 
+                    {/* EDIT */}
                     <td className="px-6 py-4">
                       <div className="flex justify-center">
                         <button
@@ -688,6 +873,7 @@ function Transactions() {
                       </div>
                     </td>
 
+                    {/* DELETE */}
                     <td className="px-6 py-4">
                       <div className="flex justify-center">
                         <button
@@ -707,6 +893,7 @@ function Transactions() {
         )}
       </div>
 
+      {/* MODAL */}
       <TransactionModal
         open={modalOpen}
         onClose={() => {
