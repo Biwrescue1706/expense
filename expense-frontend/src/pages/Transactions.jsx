@@ -33,11 +33,7 @@ function Transactions() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-
-  // =========================================================
   // LOAD DATA
-  // =========================================================
-
   useEffect(() => {
     loadTransactions();
     loadUser();
@@ -72,11 +68,7 @@ function Transactions() {
       );
     }
   };
-
-  // =========================================================
   // DATE
-  // =========================================================
-
   const formatThaiDate = (date) => {
     if (!date) return "-";
 
@@ -103,11 +95,7 @@ function Transactions() {
 
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
-
-  // =========================================================
   // EDIT / DELETE
-  // =========================================================
-
   const handleEdit = (transaction) => {
     setEditTransaction(transaction);
     setModalOpen(true);
@@ -132,11 +120,7 @@ function Transactions() {
   const handleSuccess = async () => {
     await loadTransactions();
   };
-
-  // =========================================================
   // FILTER
-  // =========================================================
-
   const handleStartDateChange = (value) => {
     setSelectedYear("");
     setStartDate(value);
@@ -164,11 +148,7 @@ function Transactions() {
     setStartDate("");
     setEndDate("");
   };
-
-  // =========================================================
   // AVAILABLE YEARS
-  // =========================================================
-
   const availableYears = useMemo(() => {
     const years = transactions
       .map((transaction) => {
@@ -180,11 +160,7 @@ function Transactions() {
 
     return [...new Set(years)].sort((a, b) => Number(b) - Number(a));
   }, [transactions]);
-
-  // =========================================================
   // FILTERED TRANSACTIONS
-  // =========================================================
-
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
 
@@ -201,11 +177,7 @@ function Transactions() {
       String(a.date || "").localeCompare(String(b.date || "")),
     );
   }, [transactions, startDate, endDate]);
-
-  // =========================================================
   // SUMMARY
-  // =========================================================
-
   // รวมรายรับทั้งหมด
   const totalIncome = useMemo(() => {
     return filteredTransactions.reduce(
@@ -221,12 +193,8 @@ function Transactions() {
       0,
     );
   }, [filteredTransactions]);
-
-  // =========================================================
   // IMPORTANT
   // เอา BALANCE ของรายการสุดท้าย
-  // =========================================================
-
   const latestBalance = useMemo(() => {
     if (filteredTransactions.length === 0) {
       return 0;
@@ -237,11 +205,7 @@ function Transactions() {
 
     return Number(lastTransaction.balance || 0);
   }, [filteredTransactions]);
-
-  // =========================================================
   // PDF
-  // =========================================================
-
   const arrayBufferToBase64 = (buffer) => {
     let binary = "";
 
@@ -581,11 +545,7 @@ function Transactions() {
       errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
     }
   };
-
-  // =========================================================
   // UI
-  // =========================================================
-
   return (
     <div className="space-y-6">
       {/* HEADER */}
