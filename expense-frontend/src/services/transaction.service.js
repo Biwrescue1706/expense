@@ -1,37 +1,46 @@
 import api from "../api/axios";
 
-export const getTransactions = async (year) => {
-    const params = year ? { year } : {};
 
-    const response = await api.get("/transactions", {
-        params,
-    });
+// GET
+export const getTransactions = async () => {
+    const response = await api.get("/transactions");
 
     return response.data.data;
 };
 
+
+// CREATE
 export const createTransaction = async (data) => {
-    const res = await api.post(
+    const response = await api.post(
         "/transactions",
         data
     );
 
-    return res.data;
+    return response.data;
 };
 
-export const updateTransaction = async (id, data) => {
-    const res = await api.patch(
+
+// UPDATE
+export const updateTransaction = async (
+    id,
+    data
+) => {
+    const response = await api.patch(
         `/transactions/${id}`,
         data
     );
 
-    return res.data;
+    return response.data;
 };
 
-export const deleteTransaction = async (id) => {
-    const res = await api.delete(
+
+// DELETE
+export const deleteTransaction = async (
+    id
+) => {
+    const response = await api.delete(
         `/transactions/${id}`
     );
 
-    return res.data;
+    return response.data;
 };

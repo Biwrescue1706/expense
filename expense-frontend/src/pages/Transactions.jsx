@@ -247,9 +247,7 @@ function Transactions() {
         format: "a4",
       });
 
-      // -----------------------------------------------------
       // FONT
-      // -----------------------------------------------------
 
       const fontUrl = "/fonts/THSarabunNew.ttf";
 
@@ -269,23 +267,17 @@ function Transactions() {
 
       pdf.setFont("THSarabunNew", "normal");
 
-      // -----------------------------------------------------
       // USER
-      // -----------------------------------------------------
 
       const userName = user?.fullName || user?.FullName || "-";
 
-      // -----------------------------------------------------
       // PDF TRANSACTIONS
-      // -----------------------------------------------------
 
       const pdfTransactions = [...filteredTransactions].sort((a, b) =>
         String(a.date || "").localeCompare(String(b.date || "")),
       );
 
-      // -----------------------------------------------------
       // REPORT DATE
-      // -----------------------------------------------------
 
       const reportStartDate =
         startDate ||
@@ -301,14 +293,10 @@ function Transactions() {
 
       const today = new Date().toISOString().split("T")[0];
 
-      // -----------------------------------------------------
       // PDF TABLE DATA
-      // -----------------------------------------------------
 
       const tableData = pdfTransactions.map((transaction) => [
         formatThaiDate(transaction.date),
-
-        transaction.typeName || "รายจ่าย",
 
         transaction.categoryName || "-",
 
@@ -325,9 +313,7 @@ function Transactions() {
         transaction.note || "-",
       ]);
 
-      // -----------------------------------------------------
       // HEADER
-      // -----------------------------------------------------
 
       const drawPageHeader = () => {
         pdf.setFont("THSarabunNew", "normal");
@@ -376,9 +362,7 @@ function Transactions() {
         pdf.setTextColor(0, 0, 0);
       };
 
-      // -----------------------------------------------------
       // FOOTER
-      // -----------------------------------------------------
 
       const drawPageFooter = (page, pageCount) => {
         pdf.setFont("THSarabunNew", "normal");
@@ -396,23 +380,13 @@ function Transactions() {
         });
       };
 
-      // -----------------------------------------------------
       // TABLE
-      // -----------------------------------------------------
 
       autoTable(pdf, {
         startY: 50,
 
         head: [
-          [
-            "วันที่",
-            "ประเภท",
-            "หมวดหมู่",
-            "รายรับ",
-            "รายจ่าย",
-            "คงเหลือ",
-            "หมายเหตุ",
-          ],
+          ["วันที่", "รายการ", "รายรับ", "รายจ่าย", "คงเหลือ", "หมายเหตุ"],
         ],
 
         body: tableData,
@@ -447,7 +421,7 @@ function Transactions() {
           },
 
           1: {
-            cellWidth: 20,
+            cellWidth: 40,
             halign: "center",
           },
 
@@ -467,11 +441,6 @@ function Transactions() {
           },
 
           5: {
-            cellWidth: 25,
-            halign: "right",
-          },
-
-          6: {
             cellWidth: "auto",
             halign: "left",
           },
@@ -510,10 +479,7 @@ function Transactions() {
         },
       });
 
-      // -----------------------------------------------------
       // PAGE NUMBER
-      // -----------------------------------------------------
-
       const pageCount = pdf.internal.getNumberOfPages();
 
       for (let page = 1; page <= pageCount; page++) {
@@ -522,9 +488,7 @@ function Transactions() {
         drawPageFooter(page, pageCount);
       }
 
-      // -----------------------------------------------------
       // FILE NAME
-      // -----------------------------------------------------
 
       let fileName = "รายงานรายรับรายจ่าย";
 
@@ -535,13 +499,9 @@ function Transactions() {
       } else {
         fileName += `_${today}`;
       }
-
       pdf.save(`${fileName}.pdf`);
-
       successAlert("ส่งออก PDF สำเร็จ");
     } catch (err) {
-      console.error(err);
-
       errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
     }
   };
@@ -722,11 +682,7 @@ function Transactions() {
                   </th>
 
                   <th className="whitespace-nowrap px-6 py-4 text-center">
-                    ประเภท
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-center">
-                    หมวดหมู่
+                    รายการ
                   </th>
 
                   <th className="whitespace-nowrap px-6 py-4 text-right">
@@ -764,23 +720,6 @@ function Transactions() {
                     {/* DATE */}
                     <td className="whitespace-nowrap px-6 py-4">
                       {formatThaiDate(transaction.date)}
-                    </td>
-
-                    {/* TYPE */}
-                    <td className="px-6 py-4">
-                      {transaction.typeName === "รายรับ" ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-                          <FaArrowUp />
-
-                          {transaction.typeName}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-                          <FaArrowDown />
-
-                          {transaction.typeName || "รายจ่าย"}
-                        </span>
-                      )}
                     </td>
 
                     {/* CATEGORY */}

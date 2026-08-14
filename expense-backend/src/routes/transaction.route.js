@@ -15,7 +15,7 @@ router.post(
     transactionController.createTransaction
 );
 
-router.put(
+router.patch(
     "/:id",
     authMiddleware,
     transactionController.updateTransaction
