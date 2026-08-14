@@ -451,17 +451,17 @@ function Transactions() {
             return;
           }
 
-          // รายรับ
-          if (data.column.index === 2 && data.cell.raw !== "-") {
+          // รายรับ = สีเขียว
+          if (data.column.index === 2) {
             data.cell.styles.textColor = [22, 163, 74];
           }
 
-          // รายจ่าย
-          if (data.column.index === 3 && data.cell.raw !== "-") {
+          // รายจ่าย = สีแดง
+          if (data.column.index === 3) {
             data.cell.styles.textColor = [220, 38, 38];
           }
 
-          // คงเหลือ
+          // คงเหลือ = สีน้ำเงิน
           if (data.column.index === 4) {
             data.cell.styles.textColor = [37, 99, 235];
           }
