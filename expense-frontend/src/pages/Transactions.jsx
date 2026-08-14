@@ -452,17 +452,17 @@ function Transactions() {
           }
 
           // รายรับ
-          if (data.column.index === 3 && data.cell.raw !== "-") {
+          if (data.column.index === 2 && data.cell.raw !== "-") {
             data.cell.styles.textColor = [22, 163, 74];
           }
 
           // รายจ่าย
-          if (data.column.index === 4 && data.cell.raw !== "-") {
+          if (data.column.index === 3 && data.cell.raw !== "-") {
             data.cell.styles.textColor = [220, 38, 38];
           }
 
           // คงเหลือ
-          if (data.column.index === 5) {
+          if (data.column.index === 4) {
             data.cell.styles.textColor = [37, 99, 235];
           }
         },
