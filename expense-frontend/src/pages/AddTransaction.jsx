@@ -1,9 +1,21 @@
+// src/pages/AddTransaction.jsx
+
 import { useEffect, useState } from "react";
-import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaSave } from "react-icons/fa";
+import {
+  FaArrowUp,
+  FaArrowDown,
+  FaCalendarAlt,
+  FaSave,
+  FaWallet,
+  FaMoneyBillWave,
+  FaStickyNote,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+
 import { createTransaction } from "../services/transaction.service";
 import { getTypes } from "../services/type.service";
 import { getCategories } from "../services/category.service";
+
 import { successAlert, errorAlert } from "../utils/alert";
 
 function AddTransaction() {
@@ -21,9 +33,17 @@ function AddTransaction() {
     note: "",
   });
 
+  // =========================================================
+  // LOAD TYPES
+  // =========================================================
+
   useEffect(() => {
     loadTypes();
   }, []);
+
+  // =========================================================
+  // LOAD CATEGORIES
+  // =========================================================
 
   useEffect(() => {
     if (form.typeId) {
@@ -36,27 +56,32 @@ function AddTransaction() {
   const loadTypes = async () => {
     try {
       const data = await getTypes();
+
       setTypes(data || []);
     } catch (err) {
       console.error(err);
-      errorAlert(
-        err.response?.data?.message || "ไม่สามารถโหลดประเภทได้"
-      );
+
+      errorAlert(err.response?.data?.message || "ไม่สามารถโหลดประเภทได้");
     }
   };
 
   const loadCategories = async (typeId) => {
     try {
       const data = await getCategories(typeId);
+
       setCategories(data || []);
     } catch (err) {
       console.error(err);
+
       setCategories([]);
-      errorAlert(
-        err.response?.data?.message || "ไม่สามารถโหลดหมวดหมู่ได้"
-      );
+
+      errorAlert(err.response?.data?.message || "ไม่สามารถโหลดหมวดหมู่ได้");
     }
   };
+
+  // =========================================================
+  // HANDLE CHANGE
+  // =========================================================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,6 +92,7 @@ function AddTransaction() {
         typeId: value,
         categoryId: "",
       }));
+
       return;
     }
 
@@ -76,27 +102,27 @@ function AddTransaction() {
     }));
   };
 
+  // =========================================================
+  // SUBMIT
+  // =========================================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.date) {
-      errorAlert("กรุณาเลือกวันที่");
-      return;
+      return errorAlert("กรุณาเลือกวันที่");
     }
 
     if (!form.typeId) {
-      errorAlert("กรุณาเลือกประเภท");
-      return;
+      return errorAlert("กรุณาเลือกประเภท");
     }
 
     if (!form.categoryId) {
-      errorAlert("กรุณาเลือกหมวดหมู่");
-      return;
+      return errorAlert("กรุณาเลือกหมวดหมู่");
     }
 
     if (!form.amount || Number(form.amount) <= 0) {
-      errorAlert("กรุณากรอกจำนวนเงิน");
-      return;
+      return errorAlert("กรุณากรอกจำนวนเงิน");
     }
 
     try {
@@ -115,16 +141,19 @@ function AddTransaction() {
       navigate("/transactions");
     } catch (err) {
       console.error(err);
-      errorAlert(
-        err.response?.data?.message || "บันทึกรายการไม่สำเร็จ"
-      );
+
+      errorAlert(err.response?.data?.message || "บันทึกรายการไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
   };
 
+  // =========================================================
+  // SELECTED TYPE
+  // =========================================================
+
   const selectedType = types.find(
-    (item) => String(item.id) === String(form.typeId)
+    (item) => String(item.id) === String(form.typeId),
   );
 
   const isIncome =
@@ -135,40 +164,124 @@ function AddTransaction() {
     selectedType?.name === "รายจ่าย" ||
     selectedType?.name?.toLowerCase() === "expense";
 
-  return (
-    <div className="min-h-full bg-gray-50 p-4 sm:p-6">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold text-gray-800">
-            เพิ่มรายการ
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            บันทึกรายรับหรือรายจ่ายของคุณ
-          </p>
-        </div>
+  // =========================================================
+  // TYPE CARD
+  // =========================================================
 
-        <div className="rounded-2xl bg-white shadow-sm">
+  const getTypeStyle = (item) => {
+    const income =
+      item.name === "รายรับ" || item.name?.toLowerCase() === "income";
+
+    const expense =
+      item.name === "รายจ่าย" || item.name?.toLowerCase() === "expense";
+
+    const selected = String(form.typeId) === String(item.id);
+
+    if (selected && income) {
+      return {
+        container: "border-green-500 bg-green-50 shadow-md shadow-green-500/10",
+        icon: "bg-green-500 text-white",
+        text: "text-green-700",
+      };
+    }
+
+    if (selected && expense) {
+      return {
+        container: "border-red-500 bg-red-50 shadow-md shadow-red-500/10",
+        icon: "bg-red-500 text-white",
+        text: "text-red-700",
+      };
+    }
+
+    return {
+      container:
+        "border-gray-200 bg-white hover:border-green-300 hover:bg-gray-50",
+      icon: "bg-gray-100 text-black",
+      text: "text-black",
+    };
+  };
+
+  return (
+    <div className="min-h-full bg-slate-50/60 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <div className="mx-auto w-full max-w-3xl">
+        {/* =================================================
+            HEADER
+        ================================================== */}
+
+        <section
+          className="
+            relative
+            mb-5
+            overflow-hidden
+            rounded-2xl
+            bg-gradient-to-r
+            from-green-600
+            via-emerald-600
+            to-teal-600
+            p-5
+            text-white
+            shadow-lg
+            shadow-green-600/10
+
+            sm:p-6
+            md:p-7
+          "
+        >
+          {/* Decoration */}
+          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+
+          <div className="pointer-events-none absolute -bottom-20 right-1/3 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl backdrop-blur-sm sm:h-14 sm:w-14 sm:text-2xl">
+              <FaWallet />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                เพิ่มรายการ
+              </h1>
+
+              <p className="mt-1 text-sm text-white sm:text-base">
+                บันทึกรายรับหรือรายจ่ายของคุณ
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            FORM
+        ================================================== */}
+
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           <form onSubmit={handleSubmit}>
-            <div className="border-b px-5 py-4 sm:px-6">
+            {/* Form Header */}
+            <div className="border-b border-gray-100 p-5 sm:p-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100 text-green-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
                   <FaSave />
                 </div>
 
                 <div>
-                  <h2 className="font-bold text-gray-800">
+                  <h2 className="font-bold text-black sm:text-lg">
                     รายละเอียดรายการ
                   </h2>
-                  <p className="text-xs text-gray-500">
+
+                  <p className="mt-0.5 text-xs text-black sm:text-sm">
                     กรอกข้อมูลรายการให้ครบถ้วน
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-5 p-5 sm:p-6">
+            {/* Form Body */}
+            <div className="space-y-6 p-5 sm:p-6 md:p-7">
+              {/* =================================================
+                  TYPE
+              ================================================== */}
+
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                <label className="mb-3 block text-sm font-bold text-black">
                   ประเภท
                 </label>
 
@@ -182,8 +295,9 @@ function AddTransaction() {
                       item.name === "รายจ่าย" ||
                       item.name?.toLowerCase() === "expense";
 
-                    const selected =
-                      String(form.typeId) === String(item.id);
+                    const selected = String(form.typeId) === String(item.id);
+
+                    const styles = getTypeStyle(item);
 
                     return (
                       <button
@@ -197,60 +311,161 @@ function AddTransaction() {
                             },
                           })
                         }
-                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-semibold transition ${
-                          selected
-                            ? income
-                              ? "border-green-500 bg-green-50 text-green-600"
-                              : expense
-                              ? "border-red-500 bg-red-50 text-red-600"
-                              : "border-green-500 bg-green-50 text-green-600"
-                            : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
-                        }`}
+                        className={`
+                          group
+                          flex
+                          min-h-[76px]
+                          items-center
+                          justify-center
+                          gap-3
+                          rounded-2xl
+                          border-2
+                          px-4
+                          py-3
+                          transition-all
+                          duration-200
+                          active:scale-[0.98]
+
+                          ${styles.container}
+                        `}
                       >
-                        {income ? (
-                          <FaArrowUp />
-                        ) : expense ? (
-                          <FaArrowDown />
-                        ) : null}
-                        {item.name}
+                        <div
+                          className={`
+                            flex
+                            h-10
+                            w-10
+                            flex-shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            transition-transform
+                            duration-200
+                            group-hover:scale-105
+
+                            ${styles.icon}
+                          `}
+                        >
+                          {income ? (
+                            <FaArrowUp />
+                          ) : expense ? (
+                            <FaArrowDown />
+                          ) : (
+                            <FaWallet />
+                          )}
+                        </div>
+
+                        <span
+                          className={`
+                            text-sm
+                            font-bold
+                            sm:text-base
+
+                            ${styles.text}
+                          `}
+                        >
+                          {item.name}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
+              {/* =================================================
+                  CATEGORY
+              ================================================== */}
+
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                <label className="mb-2 block text-sm font-bold text-black">
                   หมวดหมู่
                 </label>
 
-                <select
-                  name="categoryId"
-                  value={form.categoryId}
-                  onChange={handleChange}
-                  disabled={!form.typeId}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20 disabled:bg-gray-100 disabled:text-gray-400"
-                >
-                  <option value="">
-                    {form.typeId
-                      ? "เลือกหมวดหมู่"
-                      : "กรุณาเลือกประเภทก่อน"}
-                  </option>
+                <div className="relative">
+                  <select
+                    name="categoryId"
+                    value={form.categoryId}
+                    onChange={handleChange}
+                    disabled={!form.typeId}
+                    className="
+                      h-13
+                      w-full
+                      appearance-none
+                      rounded-xl
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      px-4
+                      py-3.5
+                      pr-10
+                      text-sm
+                      font-medium
+                      text-black
+                      outline-none
+                      transition
 
-                  {categories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
+                      focus:border-green-500
+                      focus:bg-white
+                      focus:ring-4
+                      focus:ring-green-500/10
+
+                      disabled:cursor-not-allowed
+                      disabled:bg-gray-100
+                      disabled:text-black
+                    "
+                  >
+                    <option value="">
+                      {form.typeId ? "เลือกหมวดหมู่" : "กรุณาเลือกประเภทก่อน"}
                     </option>
-                  ))}
-                </select>
+
+                    {categories.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-black">
+                    ▾
+                  </div>
+                </div>
               </div>
 
+              {/* =================================================
+                  AMOUNT
+              ================================================== */}
+
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                <label className="mb-2 block text-sm font-bold text-black">
                   จำนวนเงิน
                 </label>
 
                 <div className="relative">
+                  <div
+                    className={`
+                      pointer-events-none
+                      absolute
+                      left-4
+                      top-1/2
+                      flex
+                      h-9
+                      w-9
+                      -translate-y-1/2
+                      items-center
+                      justify-center
+                      rounded-lg
+
+                      ${
+                        isIncome
+                          ? "bg-green-100 text-green-600"
+                          : isExpense
+                            ? "bg-red-100 text-red-600"
+                            : "bg-gray-100 text-black"
+                      }
+                    `}
+                  >
+                    <FaMoneyBillWave />
+                  </div>
+
                   <input
                     type="number"
                     name="amount"
@@ -259,41 +474,108 @@ function AddTransaction() {
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    className={`w-full rounded-xl border bg-white px-4 py-3 pr-14 text-lg font-semibold outline-none transition focus:ring-2 ${
-                      isIncome
-                        ? "border-gray-300 focus:border-green-500 focus:ring-green-500/20"
-                        : isExpense
-                        ? "border-gray-300 focus:border-red-500 focus:ring-red-500/20"
-                        : "border-gray-300 focus:border-green-500 focus:ring-green-500/20"
-                    }`}
+                    className={`
+                      h-16
+                      w-full
+                      rounded-2xl
+                      border
+                      bg-white
+                      pl-16
+                      pr-16
+                      text-xl
+                      font-extrabold
+                      text-black
+                      outline-none
+                      transition
+                      placeholder:text-gray-400
+
+                      ${
+                        isIncome
+                          ? "border-green-200 focus:border-green-500 focus:ring-green-500/10"
+                          : isExpense
+                            ? "border-red-200 focus:border-red-500 focus:ring-red-500/10"
+                            : "border-gray-200 focus:border-green-500 focus:ring-green-500/10"
+                      }
+
+                      focus:ring-4
+                    `}
                   />
 
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-black">
                     บาท
                   </span>
                 </div>
+
+                {form.amount && (
+                  <p
+                    className={`
+                      mt-2
+                      text-xs
+                      font-semibold
+
+                      ${
+                        isIncome
+                          ? "text-green-600"
+                          : isExpense
+                            ? "text-red-600"
+                            : "text-black"
+                      }
+                    `}
+                  >
+                    {isIncome ? "รายรับ" : isExpense ? "รายจ่าย" : "จำนวนเงิน"}{" "}
+                    {Number(form.amount).toLocaleString()} บาท
+                  </p>
+                )}
               </div>
 
+              {/* =================================================
+                  DATE
+              ================================================== */}
+
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                <label className="mb-2 block text-sm font-bold text-black">
                   วันที่
                 </label>
 
                 <div className="relative">
-                  <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <FaCalendarAlt className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-green-600" />
 
                   <input
                     type="date"
                     name="date"
                     value={form.date}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-11 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                    className="
+                      h-13
+                      w-full
+                      rounded-xl
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      px-11
+                      py-3.5
+                      text-sm
+                      font-medium
+                      text-black
+                      outline-none
+                      transition
+
+                      focus:border-green-500
+                      focus:bg-white
+                      focus:ring-4
+                      focus:ring-green-500/10
+                    "
                   />
                 </div>
               </div>
 
+              {/* =================================================
+                  NOTE
+              ================================================== */}
+
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                <label className="mb-2 flex items-center gap-2 text-sm font-bold text-black">
+                  <FaStickyNote className="text-green-600" />
                   รายละเอียด
                 </label>
 
@@ -303,26 +585,110 @@ function AddTransaction() {
                   onChange={handleChange}
                   rows={4}
                   placeholder="เช่น ซื้ออาหารกลางวัน, เงินเดือน, ค่าเดินทาง"
-                  className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                  className="
+                    w-full
+                    resize-none
+                    rounded-2xl
+                    border
+                    border-gray-200
+                    bg-gray-50
+                    px-4
+                    py-3.5
+                    text-sm
+                    font-medium
+                    text-black
+                    outline-none
+                    transition
+                    placeholder:text-gray-500
+
+                    focus:border-green-500
+                    focus:bg-white
+                    focus:ring-4
+                    focus:ring-green-500/10
+                  "
                 />
+
+                <div className="mt-2 flex justify-between">
+                  <span className="text-xs text-black">
+                    สามารถใส่รายละเอียดเพิ่มเติมได้
+                  </span>
+
+                  <span className="text-xs font-medium text-black">
+                    {form.note.length} ตัวอักษร
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="border-t bg-gray-50 px-5 py-4 sm:px-6">
+            {/* =================================================
+                FOOTER
+            ================================================== */}
+
+            <div className="border-t border-gray-100 bg-gray-50 p-5 sm:p-6">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="
+                  group
+                  flex
+                  min-h-[52px]
+                  w-full
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-2xl
+                  bg-gradient-to-r
+                  from-green-600
+                  to-emerald-600
+                  px-5
+                  py-3.5
+                  text-sm
+                  font-bold
+                  text-white
+                  shadow-lg
+                  shadow-green-500/20
+                  transition-all
+                  duration-200
+                  hover:-translate-y-0.5
+                  hover:from-green-700
+                  hover:to-emerald-700
+                  hover:shadow-xl
+                  active:scale-[0.98]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
               >
-                <FaSave />
+                <FaSave className="transition-transform group-hover:scale-110" />
+
                 {loading ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
               </button>
 
-              <p className="mt-3 text-center text-xs text-gray-400">
-                กรอกข้อมูลให้ครบก่อนกดบันทึก
+              <p className="mt-3 text-center text-xs font-medium text-black">
+                ตรวจสอบข้อมูลให้ถูกต้องก่อนกดบันทึก
               </p>
             </div>
           </form>
+        </div>
+
+        {/* =================================================
+            INFORMATION
+        ================================================== */}
+
+        <div className="mt-4 rounded-2xl border border-green-100 bg-green-50/70 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600">
+              <FaWallet />
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-black">เคล็ดลับ</p>
+
+              <p className="mt-1 text-xs leading-5 text-black sm:text-sm">
+                เลือกประเภทและหมวดหมู่ให้ตรงกับรายการ
+                เพื่อให้สรุปรายรับรายจ่ายและรายงานของคุณถูกต้อง
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

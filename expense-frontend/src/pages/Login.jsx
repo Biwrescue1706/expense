@@ -6,67 +6,30 @@ import api from "../api/axios";
 
 function Login() {
   const navigate = useNavigate();
-
-  // ==========================================
-  // LOGIN
-  // ==========================================
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-  });
-
+  const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // ==========================================
-  // PWA
-  // ==========================================
   const [installedApp, setInstalledApp] = useState(false);
   const [installAvailable, setInstallAvailable] = useState(
     !!window.__deferredPrompt,
   );
 
-  // ==========================================
-  // PWA EVENT
-  // ==========================================
   useEffect(() => {
-    // ตรวจสอบว่าเปิดจาก App ที่ติดตั้งแล้วหรือไม่
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       window.navigator.standalone === true;
 
-    if (isStandalone) {
-      setInstalledApp(true);
-    }
+    if (isStandalone) setInstalledApp(true);
 
-    // ==========================================
-    // PWA พร้อมติดตั้ง
-    // ==========================================
-    const handleInstallAvailable = () => {
-      console.log("Login: PWA พร้อมติดตั้ง");
-
-      setInstallAvailable(true);
-    };
-
-    // ==========================================
-    // ติดตั้งสำเร็จ
-    // ==========================================
+    const handleInstallAvailable = () => setInstallAvailable(true);
     const handleAppInstalled = () => {
-      console.log("PWA was installed");
-
       setInstalledApp(true);
       setInstallAvailable(false);
     };
 
-    // กรณี main.jsx ได้ event ไปก่อน Login โหลด
-    if (window.__deferredPrompt) {
-      console.log("Login: พบ deferredPrompt ที่ main.jsx เก็บไว้แล้ว");
-
-      setInstallAvailable(true);
-    }
+    if (window.__deferredPrompt) setInstallAvailable(true);
 
     window.addEventListener("pwa-install-available", handleInstallAvailable);
-
     window.addEventListener("pwa-installed", handleAppInstalled);
 
     return () => {
@@ -74,24 +37,11 @@ function Login() {
         "pwa-install-available",
         handleInstallAvailable,
       );
-
       window.removeEventListener("pwa-installed", handleAppInstalled);
     };
   }, []);
 
-  // ==========================================
-  // INSTALL APP
-  // ==========================================
   const handleInstallApp = async () => {
-    console.log("installApp:", {
-      userAgent: navigator.userAgent,
-      os: navigator.platform,
-      browser: "Chrome / Edge",
-    });
-
-    // ==========================================
-    // ตรวจสอบว่าติดตั้งเป็น App แล้วหรือไม่
-    // ==========================================
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       window.navigator.standalone === true;
@@ -104,68 +54,36 @@ function Login() {
         confirmButtonText: "ตกลง",
         confirmButtonColor: "#16a34a",
       });
-
       return;
     }
 
-    // ==========================================
-    // ดึง Prompt จาก main.jsx
-    // ==========================================
     const promptEvent = window.__deferredPrompt;
 
-    console.log("deferredPrompt:", promptEvent);
-
-    // ==========================================
-    // ไม่มี Prompt
-    // ==========================================
     if (!promptEvent) {
-      console.log("Install prompt is not available.");
-
       Swal.fire({
         icon: "info",
         title: "ยังไม่พร้อมติดตั้ง",
         html: `
-          <div style="line-height: 1.8;">
-            <p>
-              Chrome ยังไม่พร้อมแสดงหน้าต่างติดตั้ง
-            </p>
-
-            <p style="margin-top: 10px;">
-              หากต้องการติดตั้งตอนนี้
-              ให้กดเมนู <b>⋮</b> ของ Chrome
-              แล้วเลือก <b>ติดตั้งแอป</b>
-            </p>
-          </div>
-        `,
+                    <div style="line-height:1.8;">
+                        <p>Chrome ยังไม่พร้อมแสดงหน้าต่างติดตั้ง</p>
+                        <p style="margin-top:10px;">หากต้องการติดตั้งตอนนี้ ให้กดเมนู <b>⋮</b> ของ Chrome แล้วเลือก <b>ติดตั้งแอป</b></p>
+                    </div>
+                `,
         confirmButtonText: "ตกลง",
         confirmButtonColor: "#16a34a",
       });
-
       return;
     }
 
-    // ==========================================
-    // เปิดหน้าต่าง Install ของ Chrome
-    // ==========================================
     try {
-      console.log("กำลังเปิดหน้าต่างติดตั้ง PWA...");
-
       promptEvent.prompt();
-
-      // รอผลจากผู้ใช้
       const { outcome } = await promptEvent.userChoice;
 
-      console.log("User response to the install prompt:", outcome);
-
       if (outcome === "accepted") {
-        console.log("PWA install accepted");
-      } else {
-        console.log("PWA install dismissed");
+        setInstalledApp(true);
       }
 
-      // Prompt ใช้ได้ครั้งเดียว
       window.__deferredPrompt = null;
-
       setInstallAvailable(false);
     } catch (error) {
       console.error("PWA Install Error:", error);
@@ -180,9 +98,6 @@ function Login() {
     }
   };
 
-  // ==========================================
-  // INPUT
-  // ==========================================
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -190,15 +105,11 @@ function Login() {
     });
   };
 
-  // ==========================================
-  // LOGIN
-  // ==========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       setLoading(true);
-
       await api.post("/auth/login", form);
 
       Swal.fire({
@@ -221,17 +132,10 @@ function Login() {
     }
   };
 
-  // ==========================================
-  // UI
-  // ==========================================
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-100 via-white to-blue-100 flex items-center justify-center p-3 sm:p-5 md:p-8">
       <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* =====================================
-            LEFT
-        ===================================== */}
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white flex flex-col justify-center items-center px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 lg:px-10 lg:py-14">
-          {/* LOGO */}
           <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-24 lg:h-24 xl:w-28 xl:h-28 rounded-full bg-white/20 flex items-center justify-center mb-4 sm:mb-5 md:mb-6 p-2">
             <img
               src="/BiwBoong.png"
@@ -240,17 +144,14 @@ function Login() {
             />
           </div>
 
-          {/* TITLE */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-bold text-center leading-tight mb-3 sm:mb-4">
             BiwBoong Finance
           </h1>
 
-          {/* SUB TITLE */}
           <h2 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-bold text-center leading-relaxed max-w-md mb-4 sm:mb-5">
             Personal Income & Expense Management System
           </h2>
 
-          {/* DESCRIPTION */}
           <p className="text-center text-green-100 text-sm sm:text-base md:text-lg lg:text-sm xl:text-base leading-7 sm:leading-8">
             ระบบบันทึกรายรับรายจ่าย
             <br />
@@ -260,12 +161,8 @@ function Login() {
           </p>
         </div>
 
-        {/* =====================================
-            RIGHT
-        ===================================== */}
         <div className="flex items-center p-5 sm:p-8 md:p-10 lg:p-10 xl:p-14">
           <div className="w-full max-w-lg mx-auto">
-            {/* LOGIN TITLE */}
             <div className="text-center mb-7 sm:mb-8">
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-bold text-gray-800">
                 เข้าสู่ระบบ
@@ -277,7 +174,6 @@ function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-              {/* USERNAME */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Username หรือ Email
@@ -299,7 +195,6 @@ function Login() {
                 </div>
               </div>
 
-              {/* PASSWORD */}
               <div>
                 <label className="block text-sm sm:text-base font-medium text-gray-800 mb-2">
                   Password
@@ -319,7 +214,6 @@ function Login() {
                     className="w-full h-12 sm:h-13 md:h-14 pl-11 sm:pl-12 pr-12 text-sm sm:text-base border border-gray-400 rounded-xl bg-white outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                   />
 
-                  {/* SHOW PASSWORD */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -330,7 +224,6 @@ function Login() {
                 </div>
               </div>
 
-              {/* FORGOT PASSWORD */}
               <div className="flex justify-end">
                 <Link
                   to="/forgot-password"
@@ -340,7 +233,6 @@ function Login() {
                 </Link>
               </div>
 
-              {/* LOGIN BUTTON */}
               <button
                 type="submit"
                 disabled={loading}
@@ -348,10 +240,6 @@ function Login() {
               >
                 {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
-
-              {/* =====================================
-                  INSTALL APP BUTTON
-              ===================================== */}
 
               <button
                 type="button"

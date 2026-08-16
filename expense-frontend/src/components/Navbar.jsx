@@ -1,5 +1,5 @@
 //expense-frontend/src/components/Navbar.jsx
-import { FaBars, FaWallet } from "react-icons/fa";
+import { FaBars } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 function Navbar({ setOpen, user }) {
@@ -18,49 +18,43 @@ function Navbar({ setOpen, user }) {
   const roleName = user?.role === "admin" ? "ผู้ดูแลระบบ" : "สมาชิก";
 
   return (
-    <header className="h-16 bg-blue-500 border-b border-gray-200 shadow-sm flex items-center justify-between px-6">
-      {/* Left */}
-
+    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-blue-500 px-6 shadow-sm">
       <div className="flex items-center gap-4">
         <button
           onClick={() => setOpen(true)}
-          className="lg:hidden text-gray-700 hover:text-blue-600 transition"
+          className="text-gray-700 transition hover:text-blue-600 lg:hidden"
         >
           <FaBars size={20} />
         </button>
 
-        <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-          <img src="/BiwBoong.png" alt="mo" size={18} />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <img
+            src="/BiwBoong.png"
+            alt="logo"
+            className="h-8 w-8 object-contain"
+          />
         </div>
 
-        <div>
-          <Link to="/dashboard" className="no-underline">
-            <h1 className="text-lg font-bold text-gray-100 leading-none cursor-pointer">
-              ระบบบันทึกรายรับรายจ่าย
-            </h1>
-          </Link>
-        </div>
+        <Link to="/dashboard" className="no-underline">
+          <h1 className="cursor-pointer text-lg font-bold leading-none text-gray-100">
+            ระบบบันทึกรายรับรายจ่าย
+          </h1>
+        </Link>
       </div>
 
-      {/* Right */}
-
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden items-center gap-4 md:flex">
         <div className="text-right">
           <p className="text-sm font-medium text-gray-100">{today}</p>
-
           <p className="text-xs text-gray-200">{roleName}</p>
         </div>
-
-        {/* User */}
 
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-sm font-semibold text-gray-100">{displayName}</p>
-
             <p className="text-xs text-gray-200">@{user?.username || "-"}</p>
           </div>
 
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-semibold text-gray-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-700">
             {(user?.firstName || user?.username || "U").charAt(0).toUpperCase()}
           </div>
         </div>

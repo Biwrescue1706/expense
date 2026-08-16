@@ -9,20 +9,14 @@ export default function PublicRoute() {
   useEffect(() => {
     api
       .get("/auth/profile")
-      .then(() => {
-        setAuthenticated(true);
-      })
-      .catch(() => {
-        setAuthenticated(false);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then(() => setAuthenticated(true))
+      .catch(() => setAuthenticated(false))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         กำลังตรวจสอบ...
       </div>
     );

@@ -2,26 +2,54 @@ import { FaWallet } from "react-icons/fa";
 
 function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center h-64">
+    <div className="flex min-h-[280px] flex-col items-center justify-center">
+      {/* Loading Icon */}
+      <div className="relative flex h-24 w-24 items-center justify-center">
+        {/* Glow */}
+        <div className="absolute inset-2 rounded-full bg-green-400/20 blur-xl"></div>
 
-      <div className="relative">
-        <div className="w-16 h-16 rounded-full border-4 border-green-200"></div>
+        {/* Outer ring */}
+        <div className="absolute inset-0 rounded-full border-4 border-green-100"></div>
 
-        <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-green-600 border-t-transparent animate-spin"></div>
+        {/* Spinning ring */}
+        <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-green-600 border-r-green-500"></div>
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          <FaWallet className="text-green-600 text-xl" />
+        {/* Inner circle */}
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30">
+          <FaWallet className="text-2xl text-white" />
         </div>
       </div>
 
-      <h3 className="mt-5 text-lg font-semibold text-gray-700">
-        กำลังโหลดข้อมูล...
-      </h3>
+      {/* Text */}
+      <div className="mt-6 text-center">
+        <h3 className="text-lg font-bold text-gray-800">
+          กำลังโหลดข้อมูล
+          <span className="inline-flex w-6 text-left">
+            <span className="animate-pulse">...</span>
+          </span>
+        </h3>
 
-      <p className="mt-1 text-sm text-gray-500">
-        กรุณารอสักครู่
-      </p>
+        <p className="mt-2 text-sm text-gray-500">กรุณารอสักครู่</p>
+      </div>
 
+      {/* Loading bar */}
+      <div className="mt-5 h-1.5 w-40 overflow-hidden rounded-full bg-gray-100">
+        <div className="h-full w-1/2 animate-[loading_1.5s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-green-500 to-emerald-400"></div>
+      </div>
+
+      <style>{`
+        @keyframes loading {
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(250%);
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+// expense-backend/src/controllers/user.controller.js
 const userService = require("../services/user.service");
 
 // GET ALL
@@ -14,14 +15,11 @@ exports.getUsers = async (req, res) => {
 exports.getUser = async (req, res) => {
     try {
         const data = await userService.getById(req.params.id);
-        if (!data) {
-            return res.status(404).json({ success: false, message: "ไม่พบข้อมูล" });
-        }
+        if (!data) return res.status(404).json({ success: false, message: "ไม่พบข้อมูล" });
         res.json({ success: true, data });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
-
 };
 
 // CREATE

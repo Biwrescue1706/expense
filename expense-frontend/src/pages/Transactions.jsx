@@ -1,6 +1,7 @@
 // src/pages/Transactions.jsx
 
 import { useEffect, useMemo, useState } from "react";
+
 import {
   FaArrowUp,
   FaArrowDown,
@@ -8,6 +9,13 @@ import {
   FaTrash,
   FaList,
   FaFilePdf,
+  FaFilter,
+  FaCalendarAlt,
+  FaWallet,
+  FaMoneyBillWave,
+  FaReceipt,
+  FaChevronRight,
+  FaTimes,
 } from "react-icons/fa";
 
 import api from "../api/axios";
@@ -33,11 +41,15 @@ function Transactions() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  // LOAD DATA
+
   useEffect(() => {
     loadTransactions();
     loadUser();
   }, []);
+
+  // text-gray-800========
+  // LOAD DATA
+  // text-gray-800========
 
   const loadTransactions = async () => {
     try {
@@ -68,7 +80,11 @@ function Transactions() {
       );
     }
   };
-  // DATE
+
+  // text-gray-800========
+  // FORMAT DATE
+  // text-gray-800========
+
   const formatThaiDate = (date) => {
     if (!date) return "-";
 
@@ -95,7 +111,11 @@ function Transactions() {
 
     return `${day} ${months[month - 1]} ${year + 543}`;
   };
-  // EDIT / DELETE
+
+  // text-gray-800========
+  // ACTIONS
+  // text-gray-800========
+
   const handleEdit = (transaction) => {
     setEditTransaction(transaction);
     setModalOpen(true);
@@ -120,7 +140,11 @@ function Transactions() {
   const handleSuccess = async () => {
     await loadTransactions();
   };
+
+  // text-gray-800========
   // FILTER
+  // text-gray-800========
+
   const handleStartDateChange = (value) => {
     setSelectedYear("");
     setStartDate(value);
@@ -148,7 +172,7 @@ function Transactions() {
     setStartDate("");
     setEndDate("");
   };
-  // AVAILABLE YEARS
+
   const availableYears = useMemo(() => {
     const years = transactions
       .map((transaction) => {
@@ -160,7 +184,7 @@ function Transactions() {
 
     return [...new Set(years)].sort((a, b) => Number(b) - Number(a));
   }, [transactions]);
-  // FILTERED TRANSACTIONS
+
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
 
@@ -172,13 +196,15 @@ function Transactions() {
       result = result.filter((transaction) => transaction.date <= endDate);
     }
 
-    // เรียงวันที่เก่า -> ใหม่
     return result.sort((a, b) =>
       String(a.date || "").localeCompare(String(b.date || "")),
     );
   }, [transactions, startDate, endDate]);
+
+  // text-gray-800========
   // SUMMARY
-  // รวมรายรับทั้งหมด
+  // text-gray-800========
+
   const totalIncome = useMemo(() => {
     return filteredTransactions.reduce(
       (sum, transaction) => sum + Number(transaction.income || 0),
@@ -186,15 +212,13 @@ function Transactions() {
     );
   }, [filteredTransactions]);
 
-  // รวมรายจ่ายทั้งหมด
   const totalExpense = useMemo(() => {
     return filteredTransactions.reduce(
       (sum, transaction) => sum + Number(transaction.expense || 0),
       0,
     );
   }, [filteredTransactions]);
-  // IMPORTANT
-  // เอา BALANCE ของรายการสุดท้าย
+
   const latestBalance = useMemo(() => {
     if (filteredTransactions.length === 0) {
       return 0;
@@ -205,12 +229,15 @@ function Transactions() {
 
     return Number(lastTransaction.balance || 0);
   }, [filteredTransactions]);
+
+  // text-gray-800========
   // PDF
+  // text-gray-800========
+
   const arrayBufferToBase64 = (buffer) => {
     let binary = "";
 
     const bytes = new Uint8Array(buffer);
-
     const chunkSize = 0x8000;
 
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -247,8 +274,6 @@ function Transactions() {
         format: "a4",
       });
 
-      // FONT
-
       const fontUrl = "/fonts/THSarabunNew.ttf";
 
       const response = await fetch(fontUrl);
@@ -267,17 +292,11 @@ function Transactions() {
 
       pdf.setFont("THSarabunNew", "normal");
 
-      // USER
-
       const userName = user?.fullName || user?.FullName || "-";
-
-      // PDF TRANSACTIONS
 
       const pdfTransactions = [...filteredTransactions].sort((a, b) =>
         String(a.date || "").localeCompare(String(b.date || "")),
       );
-
-      // REPORT DATE
 
       const reportStartDate =
         startDate ||
@@ -292,8 +311,6 @@ function Transactions() {
           : pdfTransactions[pdfTransactions.length - 1]?.date || "");
 
       const today = new Date().toISOString().split("T")[0];
-
-      // PDF TABLE DATA
 
       const tableData = pdfTransactions.map((transaction) => [
         formatThaiDate(transaction.date),
@@ -313,8 +330,6 @@ function Transactions() {
         transaction.note || "-",
       ]);
 
-      // HEADER
-
       const drawPageHeader = () => {
         pdf.setFont("THSarabunNew", "normal");
 
@@ -331,21 +346,19 @@ function Transactions() {
         pdf.text(userName, 15, 27);
 
         pdf.text(
-          `ช่วงวันที่: ${formatThaiDate(reportStartDate)} - ${formatThaiDate(
-            reportEndDate,
-          )}`,
+          `ช่วงวันที่: ${formatThaiDate(
+            reportStartDate,
+          )} - ${formatThaiDate(reportEndDate)}`,
           15,
           35,
         );
 
         pdf.setFontSize(14);
 
-        // รายรับ
         pdf.setTextColor(22, 163, 74);
 
         pdf.text(`รายรับทั้งหมด: ${totalIncome.toLocaleString()} บาท`, 15, 43);
 
-        // รายจ่าย
         pdf.setTextColor(220, 38, 38);
 
         pdf.text(
@@ -354,15 +367,12 @@ function Transactions() {
           43,
         );
 
-        // คงเหลือ
         pdf.setTextColor(37, 99, 235);
 
         pdf.text(`คงเหลือ: ${latestBalance.toLocaleString()} บาท`, 155, 43);
 
         pdf.setTextColor(0, 0, 0);
       };
-
-      // FOOTER
 
       const drawPageFooter = (page, pageCount) => {
         pdf.setFont("THSarabunNew", "normal");
@@ -380,8 +390,6 @@ function Transactions() {
         });
       };
 
-      // TABLE
-
       autoTable(pdf, {
         startY: 50,
 
@@ -398,7 +406,7 @@ function Transactions() {
           fontStyle: "normal",
           fontSize: 14,
           cellPadding: 3,
-          textColor: [31, 41, 55],
+          textColor: [0, 0, 0],
           lineColor: [180, 180, 180],
           lineWidth: 0.3,
         },
@@ -408,7 +416,7 @@ function Transactions() {
           fontStyle: "normal",
           fontSize: 14,
           fillColor: [243, 244, 246],
-          textColor: [17, 24, 39],
+          textColor: [0, 0, 0],
           halign: "center",
           lineColor: [150, 150, 150],
           lineWidth: 0.3,
@@ -451,17 +459,14 @@ function Transactions() {
             return;
           }
 
-          // รายรับ = สีเขียว
           if (data.column.index === 2) {
             data.cell.styles.textColor = [22, 163, 74];
           }
 
-          // รายจ่าย = สีแดง
           if (data.column.index === 3) {
             data.cell.styles.textColor = [220, 38, 38];
           }
 
-          // คงเหลือ = สีน้ำเงิน
           if (data.column.index === 4) {
             data.cell.styles.textColor = [37, 99, 235];
           }
@@ -479,7 +484,6 @@ function Transactions() {
         },
       });
 
-      // PAGE NUMBER
       const pageCount = pdf.internal.getNumberOfPages();
 
       for (let page = 1; page <= pageCount; page++) {
@@ -487,8 +491,6 @@ function Transactions() {
 
         drawPageFooter(page, pageCount);
       }
-
-      // FILE NAME
 
       let fileName = "รายงานรายรับรายจ่าย";
 
@@ -499,300 +501,856 @@ function Transactions() {
       } else {
         fileName += `_${today}`;
       }
+
       pdf.save(`${fileName}.pdf`);
+
       successAlert("ส่งออก PDF สำเร็จ");
     } catch (err) {
       errorAlert(err.message || "ไม่สามารถสร้างไฟล์ PDF ได้");
     }
   };
-  // UI
+
+  // text-gray-800========
+  // RENDER
+  // text-gray-800========
+
   return (
-    <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            รายการรายรับรายจ่าย
-          </h1>
+    <div className="min-h-full space-y-5 bg-slate-50/50 pb-8">
+      {/* text-gray-800====
+          HEADER
+      text-gray-800===== */}
 
-          <p className="mt-1 text-gray-500">
-            จัดการรายการรายรับและรายจ่ายของคุณ
-          </p>
-        </div>
+      <section
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          bg-gradient-to-r
+          from-green-600
+          via-emerald-600
+          to-teal-600
+          p-5
+          text-white
+          shadow-lg
+          shadow-green-600/10
 
-        <button
-          onClick={handleExportPDF}
-          disabled={loading || filteredTransactions.length === 0}
-          className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white shadow transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-        >
-          <FaFilePdf />
-          ส่งออก PDF
-        </button>
-      </div>
+          sm:p-6
+          md:p-7
+        "
+      >
+        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
 
-      {/* FILTER */}
-      <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-bold text-gray-800">กรองข้อมูล</h2>
+        <div className="pointer-events-none absolute -bottom-20 right-1/3 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* START DATE */}
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              วันที่เริ่มต้น
-            </label>
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                <FaReceipt />
+              </div>
 
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => handleStartDateChange(e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+              <span className="text-sm font-medium text-white">
+                Financial Transactions
+              </span>
+            </div>
+
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              รายการรายรับรายจ่าย
+            </h1>
+
+            <p className="mt-1 text-sm text-white sm:text-base">
+              จัดการ ตรวจสอบ และติดตามรายการทางการเงิน
+            </p>
           </div>
-
-          {/* END DATE */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              วันที่สิ้นสุด
-            </label>
-
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => handleEndDateChange(e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-
-          {/* YEAR */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              เลือกปี
-            </label>
-
-            <select
-              value={selectedYear}
-              onChange={(e) => handleYearChange(e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <option value="">-- เลือกปี --</option>
-
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  พ.ศ. {Number(year) + 543}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">
-            พบข้อมูล {filteredTransactions.length.toLocaleString()} รายการ
-          </p>
 
           <button
-            onClick={handleClearFilter}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition hover:bg-gray-200"
+            onClick={handleExportPDF}
+            disabled={loading || filteredTransactions.length === 0}
+            className="
+              group
+              inline-flex
+              min-h-[48px]
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-white
+              px-5
+              py-3
+              text-sm
+              font-bold
+              text-red-600
+              shadow-lg
+              transition-all
+              duration-200
+              hover:-translate-y-0.5
+              hover:bg-red-50
+              hover:shadow-xl
+              active:scale-[0.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+
+              sm:w-auto
+            "
           >
-            ล้างตัวกรอง
+            <FaFilePdf className="transition-transform group-hover:scale-110" />
+            ส่งออก PDF
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* REPORT */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow">
-        {/* REPORT HEADER */}
-        <div className="border-b p-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            รายงานรายการรายรับรายจ่าย
-          </h2>
+      {/* text-gray-800====
+          FILTER
+      text-gray-800===== */}
 
-          <p className="mt-1 text-gray-500">
-            รายการทั้งหมด {filteredTransactions.length.toLocaleString()} รายการ
-          </p>
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-gray-100 p-4 sm:p-5 md:p-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
+            <FaFilter />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-bold text-black">กรองข้อมูล</h2>
+
+            <p className="text-xs text-black sm:text-sm">
+              เลือกช่วงวันที่หรือปีที่ต้องการดู
+            </p>
+          </div>
         </div>
 
-        {/* SUMMARY */}
-        {!loading && filteredTransactions.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 border-b p-6 md:grid-cols-3">
-            {/* INCOME */}
-            <div className="rounded-xl border p-4">
-              <p className="text-sm text-gray-500">รายรับทั้งหมด</p>
+        <div className="p-4 sm:p-5 md:p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Start Date */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-black">
+                <FaCalendarAlt className="text-green-600" />
+                วันที่เริ่มต้น
+              </label>
 
-              <p className="mt-1 text-xl font-bold text-green-600">
-                +{totalIncome.toLocaleString()} บาท
-              </p>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                className="
+                  h-12
+                  w-full
+                  rounded-xl
+                  border
+                  border-gray-200
+                  bg-gray-50
+                  px-4
+                  text-sm
+                  font-medium
+                  text-black
+                  outline-none
+                  transition
+                  focus:border-green-500
+                  focus:bg-white
+                  focus:ring-4
+                  focus:ring-green-500/10
+                "
+              />
             </div>
 
-            {/* EXPENSE */}
-            <div className="rounded-xl border p-4">
-              <p className="text-sm text-gray-500">รายจ่ายทั้งหมด</p>
+            {/* End Date */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-black">
+                <FaCalendarAlt className="text-green-600" />
+                วันที่สิ้นสุด
+              </label>
 
-              <p className="mt-1 text-xl font-bold text-red-600">
-                -{totalExpense.toLocaleString()} บาท
-              </p>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => handleEndDateChange(e.target.value)}
+                className="
+                  h-12
+                  w-full
+                  rounded-xl
+                  border
+                  border-gray-200
+                  bg-gray-50
+                  px-4
+                  text-sm
+                  font-medium
+                  text-black
+                  outline-none
+                  transition
+                  focus:border-green-500
+                  focus:bg-white
+                  focus:ring-4
+                  focus:ring-green-500/10
+                "
+              />
             </div>
 
-            {/* BALANCE */}
-            <div className="rounded-xl border p-4">
-              <p className="text-sm text-gray-500">คงเหลือ</p>
+            {/* Year */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-black">
+                <FaCalendarAlt className="text-green-600" />
+                เลือกปี
+              </label>
 
-              <p className="mt-1 text-xl font-bold text-blue-600">
-                {latestBalance.toLocaleString()} บาท
+              <select
+                value={selectedYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className="
+                  h-12
+                  w-full
+                  rounded-xl
+                  border
+                  border-gray-200
+                  bg-gray-50
+                  px-4
+                  text-sm
+                  font-medium
+                  text-black
+                  outline-none
+                  transition
+                  focus:border-green-500
+                  focus:bg-white
+                  focus:ring-4
+                  focus:ring-green-500/10
+                "
+              >
+                <option value="">-- เลือกปี --</option>
+
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    พ.ศ. {Number(year) + 543}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Filter Footer */}
+          <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-black">
+              <FaList className="text-green-600" />
+
+              <span>พบข้อมูล</span>
+
+              <strong className="font-bold text-black">
+                {filteredTransactions.length.toLocaleString()}
+              </strong>
+
+              <span>รายการ</span>
+            </div>
+
+            {(startDate || endDate || selectedYear) && (
+              <button
+                onClick={handleClearFilter}
+                className="
+                  inline-flex
+                  min-h-[44px]
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  bg-gray-100
+                  px-4
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-black
+                  transition
+                  hover:bg-gray-200
+                  active:scale-[0.98]
+                "
+              >
+                <FaTimes />
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* text-gray-800====
+          SUMMARY
+      text-gray-800===== */}
+
+      {!loading && filteredTransactions.length > 0 && (
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Income */}
+          <div
+            className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-green-100
+                bg-white
+                p-5
+                shadow-sm
+                transition-all
+                duration-300
+                hover:-translate-y-1
+                hover:shadow-lg
+                hover:shadow-green-500/10
+              "
+          >
+            <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-green-50 transition-transform duration-300 group-hover:scale-125" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-black">
+                  รายรับทั้งหมด
+                </p>
+
+                <p className="mt-1 text-xs text-black">เงินที่ได้รับทั้งหมด</p>
+
+                <p className="mt-4 text-2xl font-extrabold text-green-600 sm:text-3xl">
+                  +{totalIncome.toLocaleString()}
+                </p>
+
+                <p className="mt-1 text-xs font-medium text-black">บาท</p>
+              </div>
+
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600">
+                <FaArrowUp />
+              </div>
+            </div>
+          </div>
+
+          {/* Expense */}
+          <div
+            className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-red-100
+                bg-white
+                p-5
+                shadow-sm
+                transition-all
+                duration-300
+                hover:-translate-y-1
+                hover:shadow-lg
+                hover:shadow-red-500/10
+              "
+          >
+            <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-red-50 transition-transform duration-300 group-hover:scale-125" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-black">
+                  รายจ่ายทั้งหมด
+                </p>
+
+                <p className="mt-1 text-xs text-black">เงินที่จ่ายออกทั้งหมด</p>
+
+                <p className="mt-4 text-2xl font-extrabold text-red-600 sm:text-3xl">
+                  -{totalExpense.toLocaleString()}
+                </p>
+
+                <p className="mt-1 text-xs font-medium text-black">บาท</p>
+              </div>
+
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <FaArrowDown />
+              </div>
+            </div>
+          </div>
+
+          {/* Balance */}
+          <div
+            className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-blue-100
+                bg-white
+                p-5
+                shadow-sm
+                transition-all
+                duration-300
+                hover:-translate-y-1
+                hover:shadow-lg
+                hover:shadow-blue-500/10
+
+                sm:col-span-2
+                lg:col-span-1
+              "
+          >
+            <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-50 transition-transform duration-300 group-hover:scale-125" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-black">คงเหลือ</p>
+
+                <p className="mt-1 text-xs text-black">ยอดคงเหลือสุทธิ</p>
+
+                <p className="mt-4 truncate text-2xl font-extrabold text-blue-600 sm:text-3xl">
+                  {latestBalance.toLocaleString()}
+                </p>
+
+                <p className="mt-1 text-xs font-medium text-black">บาท</p>
+              </div>
+
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <FaWallet />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* text-gray-800====
+          TRANSACTION LIST
+      text-gray-800===== */}
+
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        {/* Section Header */}
+        <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 md:p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
+              <FaList />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-bold text-black">รายการทั้งหมด</h2>
+
+              <p className="text-xs text-black sm:text-sm">
+                รายการรายรับและรายจ่าย
               </p>
             </div>
           </div>
-        )}
 
-        {/* TABLE HEADER */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="flex items-center gap-2 font-semibold text-gray-700">
-            <FaList className="text-green-600" />
-            รายการทั้งหมด
-          </h2>
+          <div className="flex items-center gap-2 text-sm text-black">
+            <FaReceipt className="text-green-600" />
 
-          <span className="text-sm text-gray-500">
-            ทั้งหมด {filteredTransactions.length.toLocaleString()} รายการ
-          </span>
+            <span>ทั้งหมด</span>
+
+            <strong>{filteredTransactions.length.toLocaleString()}</strong>
+
+            <span>รายการ</span>
+          </div>
         </div>
 
-        {/* TABLE */}
+        {/* Loading */}
         {loading ? (
-          <div className="py-16 text-center text-gray-400">
-            กำลังโหลดข้อมูล...
+          <div className="flex flex-col items-center justify-center px-5 py-16">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-green-100" />
+
+              <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-green-600" />
+
+              <FaWallet className="text-xl text-green-600" />
+            </div>
+
+            <p className="mt-5 text-sm font-semibold text-black">
+              กำลังโหลดข้อมูล...
+            </p>
+
+            <p className="mt-1 text-xs text-black">กรุณารอสักครู่</p>
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-gray-400">ไม่พบรายการในช่วงที่เลือก</p>
+          /* Empty */
+          <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100">
+              <FaReceipt className="text-3xl text-black" />
+            </div>
+
+            <h3 className="mt-5 text-base font-bold text-black">ไม่พบรายการ</h3>
+
+            <p className="mt-1 max-w-sm text-sm text-black">
+              ไม่พบรายการรายรับรายจ่ายในช่วงเวลาที่เลือก
+            </p>
 
             <button
               onClick={handleClearFilter}
-              className="mt-4 text-green-600 hover:underline"
+              className="
+                mt-5
+                inline-flex
+                min-h-[44px]
+                items-center
+                gap-2
+                rounded-xl
+                bg-green-600
+                px-5
+                py-2.5
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-green-700
+                active:scale-[0.98]
+              "
             >
+              <FaTimes />
               ล้างตัวกรอง
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="whitespace-nowrap px-6 py-4 text-left">
-                    วันที่
-                  </th>
+          <>
+            {/* text-gray-800 MOBILE CARDS text-gray-800= */}
 
-                  <th className="whitespace-nowrap px-6 py-4 text-center">
-                    รายการ
-                  </th>
+            <div className="space-y-3 p-4 md:hidden">
+              {filteredTransactions.map((transaction) => {
+                const isIncome = Number(transaction.income) > 0;
 
-                  <th className="whitespace-nowrap px-6 py-4 text-right">
-                    รายรับ
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-right">
-                    รายจ่าย
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-right">
-                    คงเหลือ
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-center">
-                    หมายเหตุ
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-center">
-                    แก้ไข
-                  </th>
-
-                  <th className="whitespace-nowrap px-6 py-4 text-center">
-                    ลบ
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="text-center">
-                {filteredTransactions.map((transaction) => (
-                  <tr
+                return (
+                  <div
                     key={transaction.id}
-                    className="border-t transition hover:bg-gray-50"
+                    className="
+                        rounded-2xl
+                        border
+                        border-gray-100
+                        bg-white
+                        p-4
+                        shadow-sm
+                        transition
+                        active:scale-[0.99]
+                      "
                   >
-                    {/* DATE */}
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {formatThaiDate(transaction.date)}
-                    </td>
-
-                    {/* CATEGORY */}
-                    <td className="px-6 py-4 font-medium">
-                      {transaction.categoryName || "-"}
-                    </td>
-
-                    {/* INCOME */}
-                    <td className="px-6 py-4 text-right">
-                      {Number(transaction.income) > 0 ? (
-                        <span className="font-semibold text-green-600">
-                          {Number(transaction.income).toLocaleString()}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-
-                    {/* EXPENSE */}
-                    <td className="px-6 py-4 text-right">
-                      {Number(transaction.expense) > 0 ? (
-                        <span className="font-semibold text-red-600">
-                          {Number(transaction.expense).toLocaleString()}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-
-                    {/* BALANCE */}
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {Number(transaction.balance || 0).toLocaleString()}
-                    </td>
-
-                    {/* NOTE */}
-                    <td className="max-w-xs truncate px-6 py-4 text-center">
-                      {transaction.note || "-"}
-                    </td>
-
-                    {/* EDIT */}
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => handleEdit(transaction)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500 text-white transition hover:bg-yellow-600"
-                          title="แก้ไข"
-                        >
-                          <FaEdit />
-                        </button>
+                    {/* Top */}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`
+                            flex
+                            h-11
+                            w-11
+                            flex-shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            ${
+                              isIncome
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                            }
+                          `}
+                      >
+                        {isIncome ? <FaArrowUp /> : <FaArrowDown />}
                       </div>
-                    </td>
 
-                    {/* DELETE */}
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => handleDelete(transaction.id)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500 text-white transition hover:bg-red-600"
-                          title="ลบ"
-                        >
-                          <FaTrash />
-                        </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-black">
+                              {transaction.categoryName || "-"}
+                            </h3>
+
+                            <p className="mt-1 text-xs text-black">
+                              {formatThaiDate(transaction.date)}
+                            </p>
+                          </div>
+
+                          <div className="flex-shrink-0 text-right">
+                            {isIncome ? (
+                              <p className="text-sm font-extrabold text-green-600">
+                                +{Number(transaction.income).toLocaleString()}
+                              </p>
+                            ) : (
+                              <p className="text-sm font-extrabold text-red-600">
+                                -{Number(transaction.expense).toLocaleString()}
+                              </p>
+                            )}
+
+                            <p className="text-[10px] font-medium text-black">
+                              บาท
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </td>
+                    </div>
+
+                    {/* Details */}
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                      <div>
+                        <p className="text-[10px] font-medium text-black">
+                          ประเภท
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs font-semibold text-black">
+                          {transaction.typeName || "-"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-medium text-black">
+                          หมวดหมู่
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs font-semibold text-black">
+                          {transaction.categoryName || "-"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-medium text-black">
+                          คงเหลือ
+                        </p>
+
+                        <p className="mt-0.5 text-xs font-bold text-blue-600">
+                          {Number(transaction.balance || 0).toLocaleString()}{" "}
+                          บาท
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-medium text-black">
+                          หมายเหตุ
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs font-semibold text-black">
+                          {transaction.note || "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                      <button
+                        onClick={() => handleEdit(transaction)}
+                        className="
+                            flex
+                            min-h-[44px]
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-xl
+                            bg-yellow-50
+                            text-sm
+                            font-semibold
+                            text-yellow-700
+                            transition
+                            hover:bg-yellow-100
+                            active:scale-[0.98]
+                          "
+                      >
+                        <FaEdit />
+                        แก้ไข
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(transaction.id)}
+                        className="
+                            flex
+                            min-h-[44px]
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-xl
+                            bg-red-50
+                            text-sm
+                            font-semibold
+                            text-red-600
+                            transition
+                            hover:bg-red-100
+                            active:scale-[0.98]
+                          "
+                      >
+                        <FaTrash />
+                        ลบ
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* text-gray-800
+                TABLE - TABLET / DESKTOP
+            text-gray-800= */}
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-[1050px] w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-bold text-black">
+                      วันที่
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-bold text-black">
+                      รายการ
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-bold text-black">
+                      รายรับ
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-bold text-black">
+                      รายจ่าย
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-bold text-black">
+                      คงเหลือ
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-bold text-black">
+                      หมายเหตุ
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-bold text-black">
+                      แก้ไข
+                    </th>
+
+                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-bold text-black">
+                      ลบ
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
 
-      {/* MODAL */}
+                <tbody>
+                  {filteredTransactions.map((transaction) => (
+                    <tr
+                      key={transaction.id}
+                      className="
+                          border-b
+                          border-gray-100
+                          transition-colors
+                          hover:bg-green-50/40
+                        "
+                    >
+                      {/* Date */}
+                      <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-black">
+                        {formatThaiDate(transaction.date)}
+                      </td>
+
+                      {/* Category */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`
+                                flex
+                                h-9
+                                w-9
+                                flex-shrink-0
+                                items-center
+                                justify-center
+                                rounded-lg
+                                ${
+                                  Number(transaction.income) > 0
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-red-100 text-red-600"
+                                }
+                              `}
+                          >
+                            {Number(transaction.income) > 0 ? (
+                              <FaArrowUp />
+                            ) : (
+                              <FaArrowDown />
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-black">
+                              {transaction.categoryName || "-"}
+                            </p>
+
+                            <p className="mt-0.5 text-xs text-black">
+                              {transaction.typeName || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Income */}
+                      <td className="px-5 py-4 text-right">
+                        {Number(transaction.income) > 0 ? (
+                          <span className="font-bold text-green-600">
+                            +{Number(transaction.income).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-black">-</span>
+                        )}
+                      </td>
+
+                      {/* Expense */}
+                      <td className="px-5 py-4 text-right">
+                        {Number(transaction.expense) > 0 ? (
+                          <span className="font-bold text-red-600">
+                            -{Number(transaction.expense).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-black">-</span>
+                        )}
+                      </td>
+
+                      {/* Balance */}
+                      <td className="px-5 py-4 text-right">
+                        <span className="font-bold text-blue-600">
+                          {Number(transaction.balance || 0).toLocaleString()}
+                        </span>
+                      </td>
+
+                      {/* Note */}
+                      <td className="max-w-[220px] px-5 py-4">
+                        <p className="truncate text-sm font-medium text-black">
+                          {transaction.note || "-"}
+                        </p>
+                      </td>
+
+                      {/* Edit */}
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleEdit(transaction)}
+                            className="
+                                flex
+                                h-10
+                                w-10
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-yellow-50
+                                text-yellow-600
+                                transition
+                                hover:bg-yellow-100
+                                hover:text-yellow-700
+                                active:scale-95
+                              "
+                            title="แก้ไข"
+                          >
+                            <FaEdit />
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Delete */}
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleDelete(transaction.id)}
+                            className="
+                                flex
+                                h-10
+                                w-10
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-red-50
+                                text-red-600
+                                transition
+                                hover:bg-red-100
+                                hover:text-red-700
+                                active:scale-95
+                              "
+                            title="ลบ"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/*  MODAL */}
       <TransactionModal
         open={modalOpen}
         onClose={() => {

@@ -38,11 +38,8 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
   }, [open, editTransaction]);
 
   useEffect(() => {
-    if (form.typeId) {
-      loadCategories(form.typeId);
-    } else {
-      setCategories([]);
-    }
+    if (form.typeId) loadCategories(form.typeId);
+    else setCategories([]);
   }, [form.typeId]);
 
   const loadTypes = async () => {
@@ -70,44 +67,22 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
     const { name, value } = e.target;
 
     if (name === "typeId") {
-      setForm((prev) => ({
-        ...prev,
-        typeId: value,
-        categoryId: "",
-      }));
+      setForm((prev) => ({ ...prev, typeId: value, categoryId: "" }));
       return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!editTransaction) return;
 
-    if (!form.date) {
-      errorAlert("กรุณาเลือกวันที่");
-      return;
-    }
-
-    if (!form.typeId) {
-      errorAlert("กรุณาเลือกประเภท");
-      return;
-    }
-
-    if (!form.categoryId) {
-      errorAlert("กรุณาเลือกหมวดหมู่");
-      return;
-    }
-
-    if (!form.amount || Number(form.amount) <= 0) {
-      errorAlert("กรุณากรอกจำนวนเงิน");
-      return;
-    }
+    if (!form.date) return errorAlert("กรุณาเลือกวันที่");
+    if (!form.typeId) return errorAlert("กรุณาเลือกประเภท");
+    if (!form.categoryId) return errorAlert("กรุณาเลือกหมวดหมู่");
+    if (!form.amount || Number(form.amount) <= 0)
+      return errorAlert("กรุณากรอกจำนวนเงิน");
 
     try {
       setLoading(true);
@@ -121,13 +96,10 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
       });
 
       successAlert("แก้ไขรายการสำเร็จ");
-
       await onSuccess();
-
       onClose();
     } catch (err) {
       console.error(err);
-
       errorAlert(err.response?.data?.message || "แก้ไขรายการไม่สำเร็จ");
     } finally {
       setLoading(false);
@@ -142,7 +114,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-xl font-bold text-gray-800">แก้ไขรายการ</h2>
-
             <p className="mt-1 text-sm text-gray-500">
               แก้ไขข้อมูลรายรับหรือรายจ่าย
             </p>
@@ -162,7 +133,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
             <label className="mb-2 block text-sm font-semibold text-gray-700">
               วันที่
             </label>
-
             <input
               type="date"
               name="date"
@@ -176,7 +146,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
             <label className="mb-2 block text-sm font-semibold text-gray-700">
               ประเภท
             </label>
-
             <select
               name="typeId"
               value={form.typeId}
@@ -184,7 +153,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
             >
               <option value="">เลือกประเภท</option>
-
               {types.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -197,7 +165,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
             <label className="mb-2 block text-sm font-semibold text-gray-700">
               หมวดหมู่
             </label>
-
             <select
               name="categoryId"
               value={form.categoryId}
@@ -208,7 +175,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
               <option value="">
                 {form.typeId ? "เลือกหมวดหมู่" : "กรุณาเลือกประเภทก่อน"}
               </option>
-
               {categories.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -221,7 +187,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
             <label className="mb-2 block text-sm font-semibold text-gray-700">
               จำนวนเงิน
             </label>
-
             <div className="relative">
               <input
                 type="number"
@@ -233,7 +198,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
                 placeholder="0.00"
                 className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-14 text-lg font-semibold outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
               />
-
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
                 บาท
               </span>
@@ -244,7 +208,6 @@ function TransactionModal({ open, onClose, onSuccess, editTransaction }) {
             <label className="mb-2 block text-sm font-semibold text-gray-700">
               หมายเหตุ
             </label>
-
             <textarea
               name="note"
               value={form.note}

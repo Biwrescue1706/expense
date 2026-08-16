@@ -2,9 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { errorAlert } from "../utils/alert";
-
-import { FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";
-
+import {
+  FaArrowUp,
+  FaArrowDown,
+  FaWallet,
+  FaChartLine,
+  FaReceipt,
+  FaMoneyBillWave,
+  FaCalendarAlt,
+  FaChevronRight,
+} from "react-icons/fa";
 import {
   ResponsiveContainer,
   LineChart,
@@ -18,11 +25,8 @@ import {
 
 function Dashboard() {
   const currentDate = new Date();
-
   const [selectedMonth, setSelectedMonth] = useState("all");
-
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
-
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,22 +37,14 @@ function Dashboard() {
   const loadTransactions = async () => {
     try {
       setLoading(true);
-
       const res = await api.get("/transactions");
-
       const responseData = res.data;
-
       const data =
         responseData.data?.transactions ||
         responseData.data ||
         responseData.transactions ||
         [];
-
-      if (Array.isArray(data)) {
-        setTransactions(data);
-      } else {
-        setTransactions([]);
-      }
+      setTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
       errorAlert(err.response?.data?.message || "ไม่สามารถโหลดข้อมูลรายการได้");
     } finally {
@@ -87,15 +83,11 @@ function Dashboard() {
   ];
 
   const formatThaiDate = (date) => {
-    if (!date) {
-      return "-";
-    }
+    if (!date) return "-";
 
     const parts = String(date).split("-");
 
-    if (parts.length !== 3) {
-      return date;
-    }
+    if (parts.length !== 3) return date;
 
     const year = Number(parts[0]);
     const month = Number(parts[1]);
@@ -108,15 +100,11 @@ function Dashboard() {
     const yearSet = new Set();
 
     transactions.forEach((item) => {
-      if (!item.date) {
-        return;
-      }
+      if (!item.date) return;
 
       const parts = String(item.date).split("-");
 
-      if (parts.length !== 3) {
-        return;
-      }
+      if (parts.length !== 3) return;
 
       const year = Number(parts[0]);
 
@@ -132,15 +120,11 @@ function Dashboard() {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((item) => {
-      if (!item.date) {
-        return false;
-      }
+      if (!item.date) return false;
 
       const parts = String(item.date).split("-");
 
-      if (parts.length !== 3) {
-        return false;
-      }
+      if (parts.length !== 3) return false;
 
       const year = Number(parts[0]);
       const month = Number(parts[1]);
@@ -165,13 +149,8 @@ function Dashboard() {
       totalIncome += income;
       totalExpense += expense;
 
-      if (income > 0) {
-        incomeTransactions++;
-      }
-
-      if (expense > 0) {
-        expenseTransactions++;
-      }
+      if (income > 0) incomeTransactions++;
+      if (expense > 0) expenseTransactions++;
     });
 
     return {
@@ -199,15 +178,11 @@ function Dashboard() {
       }));
 
       filteredTransactions.forEach((item) => {
-        if (!item.date) {
-          return;
-        }
+        if (!item.date) return;
 
         const parts = String(item.date).split("-");
 
-        if (parts.length !== 3) {
-          return;
-        }
+        if (parts.length !== 3) return;
 
         const monthIndex = Number(parts[1]) - 1;
 
@@ -234,21 +209,14 @@ function Dashboard() {
       let expense = 0;
 
       filteredTransactions.forEach((item) => {
-        if (!item.date) {
-          return;
-        }
+        if (!item.date) return;
 
         const parts = String(item.date).split("-");
 
-        if (parts.length !== 3) {
-          return;
-        }
+        if (parts.length !== 3) return;
 
-        const itemDay = Number(parts[2]);
-
-        if (itemDay === day) {
+        if (Number(parts[2]) === day) {
           income += Number(item.income || 0);
-
           expense += Number(item.expense || 0);
         }
       });
@@ -267,143 +235,393 @@ function Dashboard() {
     selectedMonth === "all" ? "ทั้งหมด" : monthNames[Number(selectedMonth) - 1];
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-            ภาพรวมการเงิน
-          </h1>
+    <div className="min-h-full space-y-5 bg-slate-50/50 pb-8">
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+      <section
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          bg-gradient-to-r
+          from-green-600
+          via-emerald-600
+          to-teal-600
+          p-5
+          text-white
+          shadow-lg
+          shadow-green-600/10
 
-          <p className="mt-1 text-sm text-gray-500">สรุปรายรับและรายจ่าย</p>
-        </div>
+          sm:p-6
+          md:p-7
+        "
+      >
+        {/* Background decoration */}
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-24 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
-        {/* เดือน / ปี */}
-        <div className="flex gap-2">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 outline-none focus:border-green-500"
-          >
-            <option value="all">ทั้งหมด</option>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                <FaChartLine />
+              </div>
 
-            {monthNames.map((month, index) => (
-              <option key={index} value={index + 1}>
-                {month}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 outline-none focus:border-green-500"
-          >
-            {years.map((year) => (
-              <option key={year} value={year}>
-                {year + 543}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
-        {/* รายรับ */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-          <p className="text-sm font-medium text-gray-900">รายรับ</p>
-
-          <p className="mt-1 text-xs text-gray-500">
-            {selectedMonthText} {selectedYear + 543}
-          </p>
-
-          <p className="mt-3 text-xl font-bold text-green-600 sm:text-2xl">
-            ฿ {summary.totalIncome.toLocaleString()}
-          </p>
-        </div>
-
-        {/* รายจ่าย */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-          <p className="text-sm font-medium text-gray-900">รายจ่าย</p>
-
-          <p className="mt-1 text-xs text-gray-500">
-            {selectedMonthText} {selectedYear + 543}
-          </p>
-
-          <p className="mt-3 text-xl font-bold text-red-500 sm:text-2xl">
-            ฿ {summary.totalExpense.toLocaleString()}
-          </p>
-        </div>
-
-        {/* คงเหลือ */}
-        <div className="col-span-2 rounded-2xl bg-white p-4 shadow-sm sm:p-5 md:col-span-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">คงเหลือ</p>
-
-              <p className="mt-1 text-xs text-gray-500">
-                {selectedMonthText} {selectedYear + 543}
-              </p>
-
-              <p className="mt-3 text-xl font-bold text-blue-600 sm:text-2xl">
-                ฿ {summary.balance.toLocaleString()}
-              </p>
+              <span className="text-sm font-medium text-green-50">
+                Financial Dashboard
+              </span>
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 sm:h-14 sm:w-14">
-              <FaWallet className="text-2xl text-blue-500 sm:text-3xl" />
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              ภาพรวมการเงิน
+            </h1>
+
+            <p className="mt-1 text-sm text-green-50 sm:text-base">
+              สรุปรายรับ รายจ่าย และยอดคงเหลือของคุณ
+            </p>
+          </div>
+
+          {/* Filters */}
+          <div className="w-full lg:w-auto">
+            <div className="rounded-2xl bg-white/10 p-2 backdrop-blur-md">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <div className="relative">
+                  <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-xs text-gray-800" />
+
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="
+                      h-11
+                      w-full
+                      appearance-none
+                      rounded-xl
+                      border-0
+                      bg-white
+                      pl-9
+                      pr-8
+                      text-sm
+                      font-semibold
+                      text-gray-800
+                      shadow-sm
+                      outline-none
+                      transition
+                      focus:ring-2
+                      focus:ring-white/50
+
+                      sm:min-w-[145px]
+                    "
+                  >
+                    <option value="all">ทั้งหมด</option>
+
+                    {monthNames.map((month, index) => (
+                      <option key={index} value={index + 1}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="
+                      h-11
+                      w-full
+                      appearance-none
+                      rounded-xl
+                      border-0
+                      bg-white
+                      px-4
+                      pr-8
+                      text-sm
+                      font-semibold
+                      text-gray-800
+                      shadow-sm
+                      outline-none
+                      transition
+                      focus:ring-2
+                      focus:ring-white/50
+
+                      sm:min-w-[110px]
+                    "
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year + 543}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Graph */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-        <div className="mb-5">
-          <h2 className="text-lg font-bold text-gray-900">รายรับ - รายจ่าย</h2>
+      {/* =====================================================
+          SUMMARY CARDS
+      ====================================================== */}
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-5">
+        {/* Income */}
+        <div
+          className="
+            group
+            relative
+            overflow-hidden
+            rounded-2xl
+            border
+            border-green-100
+            bg-white
+            p-4
+            shadow-sm
+            transition-all
+            duration-300
+            hover:-translate-y-1
+            hover:shadow-lg
+            hover:shadow-green-500/10
 
-          <p className="mt-1 text-sm text-gray-500">
-            {selectedMonthText} {selectedYear + 543}
-          </p>
+            sm:p-5
+            md:p-6
+          "
+        >
+          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-green-50 transition-transform duration-300 group-hover:scale-125" />
+
+          <div className="relative">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                  รายรับ
+                </p>
+
+                <p className="mt-1 text-[11px] text-gray-900 sm:text-xs">
+                  {selectedMonthText} {selectedYear + 543}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600 sm:h-12 sm:w-12">
+                <FaArrowUp className="text-sm sm:text-base" />
+              </div>
+            </div>
+
+            <p className="mt-4 text-xl font-extrabold tracking-tight text-green-600 sm:text-2xl md:text-3xl">
+              ฿ {summary.totalIncome.toLocaleString()}
+            </p>
+
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-900">
+              <FaReceipt className="text-[10px]" />
+              {summary.incomeTransactions.toLocaleString()} รายการ
+            </div>
+          </div>
         </div>
 
-        <div className="h-[280px] w-full sm:h-[350px]">
+        {/* Expense */}
+        <div
+          className="
+            group
+            relative
+            overflow-hidden
+            rounded-2xl
+            border
+            border-red-100
+            bg-white
+            p-4
+            shadow-sm
+            transition-all
+            duration-300
+            hover:-translate-y-1
+            hover:shadow-lg
+            hover:shadow-red-500/10
+
+            sm:p-5
+            md:p-6
+          "
+        >
+          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-50 transition-transform duration-300 group-hover:scale-125" />
+
+          <div className="relative">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                  รายจ่าย
+                </p>
+
+                <p className="mt-1 text-[11px] text-gray-800 sm:text-xs">
+                  {selectedMonthText} {selectedYear + 543}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-500 sm:h-12 sm:w-12">
+                <FaArrowDown className="text-sm sm:text-base" />
+              </div>
+            </div>
+
+            <p className="mt-4 text-xl font-extrabold tracking-tight text-red-500 sm:text-2xl md:text-3xl">
+              ฿ {summary.totalExpense.toLocaleString()}
+            </p>
+
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-800">
+              <FaReceipt className="text-[10px]" />
+              {summary.expenseTransactions.toLocaleString()} รายการ
+            </div>
+          </div>
+        </div>
+
+        {/* Balance */}
+        <div
+          className="
+            col-span-2
+            group
+            relative
+            overflow-hidden
+            rounded-2xl
+            border
+            border-blue-100
+            bg-white
+            p-4
+            shadow-sm
+            transition-all
+            duration-300
+            hover:-translate-y-1
+            hover:shadow-lg
+            hover:shadow-blue-500/10
+
+            sm:p-5
+            md:p-6
+            lg:col-span-1
+          "
+        >
+          <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-50 transition-transform duration-300 group-hover:scale-125" />
+
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                คงเหลือ
+              </p>
+
+              <p className="mt-1 text-[16px] text-gray-800 sm:text-xs">
+                {selectedMonthText} {selectedYear + 543}
+              </p>
+
+              <p className="mt-4 truncate text-xl font-extrabold tracking-tight text-blue-600 sm:text-2xl md:text-3xl">
+                ฿ {summary.balance.toLocaleString()}
+              </p>
+
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-800">
+                <FaMoneyBillWave className="text-[10px]" />
+                ยอดคงเหลือสุทธิ
+              </div>
+            </div>
+
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 sm:h-16 sm:w-16">
+              <FaWallet className="text-2xl sm:text-3xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          CHART
+      ====================================================== */}
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
+                <FaChartLine />
+              </div>
+
+              <div>
+                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                  รายรับ - รายจ่าย
+                </h2>
+
+                <p className="text-xs text-gray-800 sm:text-sm">
+                  {selectedMonthText} {selectedYear + 543}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              รายรับ
+            </span>
+
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+              รายจ่าย
+            </span>
+          </div>
+        </div>
+
+        <div className="h-[270px] w-full px-1 pb-3 pt-3 sm:h-[350px] sm:px-4 sm:pb-5 md:h-[380px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
               margin={{
                 top: 10,
                 right: 10,
-                left: 0,
+                left: -15,
                 bottom: 5,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid
+                strokeDasharray="4 4"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
 
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="month"
+                tick={{
+                  fontSize: 11,
+                  fill: "#64748b",
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
 
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{
+                  fontSize: 10,
+                  fill: "#64748b",
+                }}
                 tickFormatter={(value) => Number(value).toLocaleString()}
+                axisLine={false}
+                tickLine={false}
               />
 
               <Tooltip
+                contentStyle={{
+                  borderRadius: "14px",
+                  border: "1px solid #e5e7eb",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                }}
                 formatter={(value) => `${Number(value).toLocaleString()} บาท`}
                 labelFormatter={(label) =>
                   selectedMonth === "all" ? label : `วันที่ ${label}`
                 }
               />
 
-              <Legend />
+              <Legend
+                verticalAlign="top"
+                height={0}
+                wrapperStyle={{
+                  display: "none",
+                }}
+              />
 
               <Line
                 type="monotone"
                 dataKey="income"
                 name="รายรับ"
                 stroke="#16a34a"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
+                strokeWidth={3}
+                dot={{ r: 2 }}
                 activeDot={{ r: 5 }}
               />
 
@@ -412,180 +630,304 @@ function Dashboard() {
                 dataKey="expense"
                 name="รายจ่าย"
                 stroke="#ef4444"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
+                strokeWidth={3}
+                dot={{ r: 2 }}
                 activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
 
-      {/* Latest + Summary */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* รายการล่าสุด */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-center justify-between">
+      {/* =====================================================
+          BOTTOM CONTENT
+      ====================================================== */}
+      <section className="grid gap-5 lg:grid-cols-2">
+        {/* Latest Transactions */}
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 p-4 sm:p-5 md:p-6">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">รายการล่าสุด</h2>
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
+                  <FaReceipt />
+                </div>
 
-              <p className="mt-1 text-xs text-gray-500">
-                {selectedMonthText} {selectedYear + 543}
-              </p>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                    รายการล่าสุด
+                  </h2>
+
+                  <p className="text-xs text-gray-800">
+                    {selectedMonthText} {selectedYear + 543}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <Link
               to="/transactions"
-              className="text-sm font-medium text-green-600 hover:text-green-700"
+              className="
+                group
+                flex
+                items-center
+                gap-1
+                rounded-lg
+                px-2
+                py-2
+                text-xs
+                font-semibold
+                text-green-600
+                transition
+                hover:bg-green-50
+                sm:text-sm
+              "
             >
-              ดูทั้งหมด →
+              ดูทั้งหมด
+              <FaChevronRight className="text-[10px] transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
-          {loading ? (
-            <div className="py-10 text-center text-gray-400">
-              กำลังโหลดข้อมูล...
-            </div>
-          ) : latestTransactions.length > 0 ? (
-            <div className="space-y-4">
-              {latestTransactions.map((item) => (
-                <div
-                  key={item.id}
-                  className="border-b pb-4 last:border-b-0 last:pb-0"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                          Number(item.income) > 0
-                            ? "bg-green-100 text-green-600"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {Number(item.income) > 0 ? (
-                          <FaArrowUp />
-                        ) : (
-                          <FaArrowDown />
-                        )}
-                      </div>
+          <div className="p-4 sm:p-5 md:p-6">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="h-9 w-9 animate-spin rounded-full border-4 border-green-100 border-t-green-600" />
 
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-gray-900">
-                          {item.categoryName || "-"}
-                        </p>
+                <p className="mt-4 text-sm text-gray-800">กำลังโหลดข้อมูล...</p>
+              </div>
+            ) : latestTransactions.length > 0 ? (
+              <div className="space-y-3">
+                {latestTransactions.map((item) => {
+                  const isIncome = Number(item.income) > 0;
 
-                        <p className="text-xs text-gray-500">
-                          {formatThaiDate(item.date)}
-                        </p>
+                  return (
+                    <div
+                      key={item.id}
+                      className="
+                        group
+                        rounded-xl
+                        border
+                        border-gray-100
+                        bg-gray-50/50
+                        p-3
+                        transition-all
+                        duration-200
+                        hover:border-gray-200
+                        hover:bg-white
+                        hover:shadow-sm
+
+                        sm:p-4
+                      "
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Icon */}
+                        <div
+                          className={`
+                            flex
+                            h-10
+                            w-10
+                            flex-shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            ${
+                              isIncome
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-500"
+                            }
+                          `}
+                        >
+                          {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+                        </div>
+
+                        {/* Main */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-gray-900">
+                                {item.categoryName || "-"}
+                              </p>
+
+                              <p className="mt-0.5 text-xs text-gray-800">
+                                {formatThaiDate(item.date)}
+                              </p>
+                            </div>
+
+                            <p
+                              className={`
+                                flex-shrink-0
+                                text-sm
+                                font-extrabold
+                                ${isIncome ? "text-green-600" : "text-red-500"}
+                              `}
+                            >
+                              {isIncome ? "+" : "-"}
+                              {Number(
+                                isIncome ? item.income : item.expense,
+                              ).toLocaleString()}{" "}
+                              บาท
+                            </p>
+                          </div>
+
+                          {/* Details */}
+                          <div className="mt-2 grid gap-1 text-xs text-gray-900 sm:grid-cols-2">
+                            <p className="truncate">
+                              <span className="font-medium text-gray-700">
+                                ประเภท:
+                              </span>{" "}
+                              {item.typeName || "-"}
+                            </p>
+
+                            <p className="truncate">
+                              <span className="font-medium text-gray-700">
+                                หมวดหมู่:
+                              </span>{" "}
+                              {item.categoryName || "-"}
+                            </p>
+
+                            <p className="truncate sm:col-span-2">
+                              <span className="font-medium text-gray-700">
+                                หมายเหตุ:
+                              </span>{" "}
+                              {item.note || "-"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex-shrink-0 text-right">
-                      {Number(item.income) > 0 ? (
-                        <p className="font-bold text-green-600">
-                          +{Number(item.income).toLocaleString()} บาท
-                        </p>
-                      ) : (
-                        <p className="font-bold text-red-500">
-                          -{Number(item.expense).toLocaleString()} บาท
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="ml-[52px] mt-2 space-y-1">
-                    <p className="text-xs text-gray-600">
-                      <span className="font-medium text-gray-900">ประเภท:</span>{" "}
-                      {item.typeName || "-"}
-                    </p>
-
-                    <p className="text-xs text-gray-600">
-                      <span className="font-medium text-gray-900">
-                        หมวดหมู่:
-                      </span>{" "}
-                      {item.categoryName || "-"}
-                    </p>
-
-                    <p className="text-xs text-gray-600">
-                      <span className="font-medium text-gray-900">
-                        หมายเหตุ:
-                      </span>{" "}
-                      {item.note || "-"}
-                    </p>
-                  </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+                  <FaWallet className="text-2xl text-gray-300" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-10 text-center text-gray-400">
-              <FaWallet className="mx-auto mb-3 text-4xl text-gray-300" />
 
-              <p>ยังไม่มีรายการ</p>
-            </div>
-          )}
+                <p className="mt-4 text-sm font-medium text-gray-500">
+                  ยังไม่มีรายการ
+                </p>
+
+                <p className="mt-1 text-xs text-gray-800">
+                  ยังไม่มีข้อมูลในช่วงเวลานี้
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* สรุปข้อมูล */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="mb-5 text-lg font-bold text-gray-900">สรุปข้อมูล</h2>
+        {/* Summary */}
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="border-b border-gray-100 p-4 sm:p-5 md:p-6">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <FaWallet />
+              </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-900">จำนวนรายการ</span>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                  สรุปข้อมูล
+                </h2>
 
-              <strong className="text-sm font-bold text-gray-900">
-                {summary.totalTransactions.toLocaleString()} รายการ
-              </strong>
+                <p className="text-xs text-gray-800">
+                  ภาพรวมของช่วงเวลาที่เลือก
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 md:p-6">
+            <div className="divide-y divide-gray-100">
+              {/* Total Transactions */}
+              <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการ
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-gray-800">รายการทั้งหมด</p>
+                </div>
+
+                <strong className="text-sm font-bold text-gray-900">
+                  {summary.totalTransactions.toLocaleString()}
+                </strong>
+              </div>
+
+              {/* Income Transactions */}
+              <div className="flex items-center justify-between gap-4 py-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการรายรับ
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-gray-800">รายการเงินเข้า</p>
+                </div>
+
+                <strong className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-600">
+                  {summary.incomeTransactions.toLocaleString()}
+                </strong>
+              </div>
+
+              {/* Expense Transactions */}
+              <div className="flex items-center justify-between gap-4 py-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการรายจ่าย
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-gray-800">รายการเงินออก</p>
+                </div>
+
+                <strong className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-bold text-red-500">
+                  {summary.expenseTransactions.toLocaleString()}
+                </strong>
+              </div>
+
+              {/* Income */}
+              <div className="flex items-center justify-between gap-4 py-4">
+                <span className="text-sm font-medium text-gray-700">
+                  รายรับทั้งหมด
+                </span>
+
+                <strong className="text-sm font-bold text-green-600">
+                  {summary.totalIncome.toLocaleString()} บาท
+                </strong>
+              </div>
+
+              {/* Expense */}
+              <div className="flex items-center justify-between gap-4 py-4">
+                <span className="text-sm font-medium text-gray-700">
+                  รายจ่ายทั้งหมด
+                </span>
+
+                <strong className="text-sm font-bold text-red-500">
+                  {summary.totalExpense.toLocaleString()} บาท
+                </strong>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-900">จำนวนรายการรายรับ</span>
+            {/* Balance */}
+            <div className="mt-3 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-gray-800">
+                    คงเหลือสุทธิ
+                  </p>
 
-              <strong className="text-sm font-bold text-green-600">
-                {summary.incomeTransactions.toLocaleString()} รายการ
-              </strong>
-            </div>
+                  <p className="mt-1 text-xs text-gray-800">รายรับ - รายจ่าย</p>
+                </div>
 
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-900">จำนวนรายการรายจ่าย</span>
+                <div className="text-right">
+                  <p className="text-xl font-extrabold text-blue-600 sm:text-2xl">
+                    {summary.balance.toLocaleString()}
+                  </p>
 
-              <strong className="text-sm font-bold text-red-500">
-                {summary.expenseTransactions.toLocaleString()} รายการ
-              </strong>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-gray-100 py-3">
-              <span className="text-sm font-medium text-gray-900">
-                รายรับทั้งหมด
-              </span>
-
-              <strong className="text-sm font-bold text-green-600">
-                {summary.totalIncome.toLocaleString()} บาท
-              </strong>
-            </div>
-
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm font-medium text-gray-900">
-                รายจ่ายทั้งหมด
-              </span>
-
-              <strong className="text-sm font-bold text-red-500">
-                {summary.totalExpense.toLocaleString()} บาท
-              </strong>
-            </div>
-
-            <div className="my-2 border-t border-gray-200" />
-
-            <div className="flex items-center justify-between py-3">
-              <span className="font-bold text-gray-900">คงเหลือ</span>
-
-              <strong className="text-lg font-bold text-blue-600">
-                {summary.balance.toLocaleString()} บาท
-              </strong>
+                  <p className="text-xs font-medium text-blue-400">บาท</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

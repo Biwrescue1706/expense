@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import { createUser, updateUser } from "../services/user.service";
-
 import { successAlert, errorAlert } from "../utils/alert";
 
 function RegisterModal({ open, onClose, onSuccess, editUser }) {
@@ -34,10 +33,7 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
   }, [editUser]);
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const submit = async (e) => {
@@ -47,43 +43,13 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
       if (editUser) {
         const payload = {};
 
-        if (form.username !== editUser.username) {
-          payload.username = form.username;
-        }
-
-        if (form.email !== editUser.email) {
-          payload.email = form.email;
-        }
-
-        if (form.prefix !== editUser.prefix) {
-          payload.prefix = form.prefix;
-        }
-
-        if (form.firstName !== editUser.firstName) {
-          payload.firstName = form.firstName;
-        }
-
-        if (form.lastName !== editUser.lastName) {
-          payload.lastName = form.lastName;
-        }
-
-        if (form.phone !== editUser.phone) {
-          payload.phone = form.phone;
-        }
-
-        if (form.citizenId !== editUser.citizenId) {
-          payload.citizenId = form.citizenId;
-        }
-
-        if (form.role !== editUser.role) {
-          payload.role = form.role;
-        }
-
-        if (form.password && form.password.trim() !== "") {
-          payload.password = form.password;
-        }
-
-        console.log("PATCH DATA:", payload);
+        Object.keys(form).forEach((key) => {
+          if (key === "password") {
+            if (form.password?.trim()) payload.password = form.password;
+          } else if (form[key] !== (editUser[key] ?? "")) {
+            payload[key] = form[key];
+          }
+        });
 
         await updateUser(editUser.id, payload);
       } else {
@@ -91,12 +57,10 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
       }
 
       successAlert(editUser ? "แก้ไขสมาชิกสำเร็จ" : "เพิ่มสมาชิกสำเร็จ");
-
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-
       errorAlert(err.response?.data?.message || "เกิดข้อผิดพลาด");
     }
   };
@@ -104,33 +68,31 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl w-full max-w-xl p-6">
-        <div className="flex justify-between mb-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-xl rounded-2xl bg-white p-6">
+        <div className="mb-5 flex justify-between">
           <h2 className="text-xl font-bold">
             {editUser ? "แก้ไขสมาชิก" : "เพิ่มสมาชิก"}
           </h2>
-
           <button onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
-        <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
+        <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <input
             name="username"
             placeholder="Username"
             value={form.username}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
-
           <input
             name="email"
             placeholder="Email"
             value={form.email}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
 
           {!editUser && (
@@ -140,7 +102,7 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
               placeholder="Password"
               value={form.password}
               onChange={handleChange}
-              className="border rounded-lg p-3"
+              className="rounded-lg border p-3"
             />
           )}
 
@@ -148,7 +110,7 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
             name="prefix"
             value={form.prefix}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           >
             <option value="นาย">นาย</option>
             <option value="นาง">นาง</option>
@@ -160,53 +122,52 @@ function RegisterModal({ open, onClose, onSuccess, editUser }) {
             placeholder="ชื่อ"
             value={form.firstName}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
-
           <input
             name="lastName"
             placeholder="นามสกุล"
             value={form.lastName}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
-
           <input
             name="phone"
             placeholder="เบอร์โทร"
             value={form.phone}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
-
           <input
             name="citizenId"
             placeholder="เลขบัตรประชาชน"
             value={form.citizenId}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           />
 
           <select
             name="role"
             value={form.role}
             onChange={handleChange}
-            className="border rounded-lg p-3"
+            className="rounded-lg border p-3"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
 
-          <div className="md:col-span-2 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 md:col-span-2">
             <button
               type="button"
               onClick={onClose}
-              className="border px-5 py-2 rounded-lg"
+              className="rounded-lg border px-5 py-2"
             >
               ยกเลิก
             </button>
-
-            <button className="bg-green-600 text-white px-5 py-2 rounded-lg">
+            <button
+              type="submit"
+              className="rounded-lg bg-green-600 px-5 py-2 text-white"
+            >
               บันทึก
             </button>
           </div>

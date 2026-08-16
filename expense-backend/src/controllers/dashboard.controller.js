@@ -3,38 +3,11 @@
 const dashboardService = require("../services/dashboard.service");
 
 exports.getDashboard = async (req, res) => {
-
     try {
-
-        if (!req.user?.id) {
-
-            return res.status(401).json({
-                success: false,
-                message: "กรุณาเข้าสู่ระบบ"
-            });
-
-        }
-
-        const userId = req.user.id;
-
-        const data =
-            await dashboardService.getDashboard(userId);
-
-        return res.json({
-            success: true,
-            data
-        });
-
+        if (!req.user?.id) return res.status(401).json({ success: false, message: "กรุณาเข้าสู่ระบบ" });
+        const data = await dashboardService.getDashboard(req.user.id);
+        return res.json({ success: true, data });
     } catch (err) {
-
-        console.error("===== DASHBOARD ERROR =====");
-        console.error(err);
-
-        return res.status(500).json({
-            success: false,
-            message: err.message
-        });
-
+        return res.status(500).json({ success: false, message: err.message });
     }
-
 };

@@ -1,5 +1,4 @@
 // src/api/axios.js
-
 import axios from "axios";
 
 const api = axios.create({
@@ -11,36 +10,20 @@ const api = axios.create({
 });
 
 api.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-
+    (response) => response,
     (error) => {
-
         if (error.response?.status === 401) {
-
             localStorage.removeItem("token");
 
-            // URL ของ API ที่ทำให้ 401
             const url = error.config?.url || "";
 
-            // ถ้าเป็น /auth/profile
-            // ห้าม redirect เพราะ PublicRoute
-            // ใช้ 401 เพื่อเช็กว่ายัง Login หรือไม่
-            if (!url.includes("/auth/profile")) {
-
-                if (window.location.pathname !== "/") {
-
-                    window.location.href = "/";
-
-                }
-
+            // /auth/profile ใช้สำหรับตรวจสอบสถานะ Login
+            if (!url.includes("/auth/profile") && window.location.pathname !== "/") {
+                window.location.href = "/";
             }
-
         }
 
         return Promise.reject(error);
-
     }
 );
 
