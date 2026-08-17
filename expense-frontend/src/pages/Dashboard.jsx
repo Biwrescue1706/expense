@@ -26,9 +26,11 @@ function Dashboard() {
   const currentDate = new Date();
   const today = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
 
-  const [dateFilter, setDateFilter] = useState("all");
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [selectedDay, setSelectedDay] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +56,21 @@ function Dashboard() {
     }
   };
 
+  const monthNames = [
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม",
+  ];
+
   const thaiMonthNames = [
     "ม.ค.",
     "ก.พ.",
@@ -69,10 +86,12 @@ function Dashboard() {
     "ธ.ค.",
   ];
 
+  const days = Array.from({ length: 31 }, (_, index) => index + 1);
+
   const formatThaiDate = (date) => {
     if (!date) return "-";
 
-    const parts = String(date).split("-");
+    const parts = String(date).substring(0, 10).split("-");
 
     if (parts.length !== 3) return date;
 
@@ -80,40 +99,64 @@ function Dashboard() {
     const month = Number(parts[1]);
     const day = Number(parts[2]);
 
-    if (!year || !month || !day) return date;
+    if (!year || !month || !day || !thaiMonthNames[month - 1]) {
+      return date;
+    }
 
     return `${day} ${thaiMonthNames[month - 1]} ${year + 543}`;
   };
 
-  const formatThaiDateRange = () => {
-    if (dateFilter === "all") return "ทั้งหมด";
-    if (dateFilter === "today") return `วันนี้ ${formatThaiDate(today)}`;
-    if (dateFilter === "range") {
-      if (!startDate && !endDate) return "เลือกระหว่างวันที่";
-      if (startDate && endDate) {
-        return `${formatThaiDate(startDate)} - ${formatThaiDate(endDate)}`;
+  const years = useMemo(() => {
+    const yearSet = new Set();
+
+    transactions.forEach((item) => {
+      if (!item.date) return;
+
+      const parts = String(item.date).substring(0, 10).split("-");
+
+      if (parts.length !== 3) return;
+
+      const year = Number(parts[0]);
+
+      if (!isNaN(year)) {
+        yearSet.add(year);
       }
-      if (startDate) return `ตั้งแต่ ${formatThaiDate(startDate)}`;
-      return `ถึง ${formatThaiDate(endDate)}`;
-    }
-    return "ทั้งหมด";
-  };
+    });
+
+    yearSet.add(currentDate.getFullYear());
+
+    return Array.from(yearSet).sort((a, b) => b - a);
+  }, [transactions]);
+
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set();
+
+    transactions.forEach((item) => {
+      if (!item.date) return;
+
+      const parts = String(item.date).substring(0, 10).split("-");
+
+      if (parts.length !== 3) return;
+
+      const year = Number(parts[0]);
+      const month = Number(parts[1]);
+
+      if (year === Number(selectedYear) && month >= 1 && month <= 12) {
+        monthSet.add(month);
+      }
+    });
+
+    return Array.from(monthSet).sort((a, b) => a - b);
+  }, [transactions, selectedYear]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((item) => {
       if (!item.date) return false;
 
       const itemDate = String(item.date).substring(0, 10);
+      const [year, month, day] = itemDate.split("-").map(Number);
 
-      if (dateFilter === "all") {
-        return true;
-      }
-
-      if (dateFilter === "today") {
-        return itemDate === today;
-      }
-
-      if (dateFilter === "range") {
+      if (selectedDay === "range") {
         if (startDate && endDate) {
           return itemDate >= startDate && itemDate <= endDate;
         }
@@ -129,9 +172,31 @@ function Dashboard() {
         return true;
       }
 
+      if (year !== Number(selectedYear)) return false;
+
+      if (selectedMonth !== "all" && month !== Number(selectedMonth)) {
+        return false;
+      }
+
+      if (selectedDay === "today") {
+        return itemDate === today;
+      }
+
+      if (selectedDay !== "all" && day !== Number(selectedDay)) {
+        return false;
+      }
+
       return true;
     });
-  }, [transactions, dateFilter, startDate, endDate, today]);
+  }, [
+    transactions,
+    selectedDay,
+    selectedMonth,
+    selectedYear,
+    startDate,
+    endDate,
+    today,
+  ]);
 
   const summary = useMemo(() => {
     let totalIncome = 0;
@@ -160,7 +225,6 @@ function Dashboard() {
     };
   }, [filteredTransactions]);
 
-  // เรียงรายการล่าสุดจาก createdAt ก่อน
   const latestTransactions = useMemo(() => {
     return [...filteredTransactions]
       .sort((a, b) => {
@@ -171,8 +235,13 @@ function Dashboard() {
           return dateB.localeCompare(dateA);
         }
 
-        const createdA = new Date(a.createdAt || 0).getTime();
-        const createdB = new Date(b.createdAt || 0).getTime();
+        const createdA = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
+
+        const createdB = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
 
         return createdB - createdA;
       })
@@ -186,46 +255,137 @@ function Dashboard() {
       if (!item.date) return;
 
       const date = String(item.date).substring(0, 10);
+      const [year, month, day] = date.split("-").map(Number);
 
-      if (!grouped[date]) {
-        grouped[date] = {
-          date,
+      let key;
+      let label;
+
+      if (selectedDay === "range") {
+        key = date;
+        label = formatThaiDate(date);
+      } else if (selectedMonth === "all") {
+        key = `${year}-${String(month).padStart(2, "0")}`;
+        label = thaiMonthNames[month - 1];
+      } else {
+        key = date;
+        label = `${day}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          key,
+          label,
           income: 0,
           expense: 0,
         };
       }
 
-      grouped[date].income += Number(item.income || 0);
-      grouped[date].expense += Number(item.expense || 0);
+      grouped[key].income += Number(item.income || 0);
+      grouped[key].expense += Number(item.expense || 0);
     });
 
     return Object.values(grouped)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .sort((a, b) => a.key.localeCompare(b.key))
       .map((item) => ({
-        date: formatThaiDate(item.date),
+        date: item.label,
         income: item.income,
         expense: item.expense,
       }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, selectedDay, selectedMonth]);
 
-  const handleDateFilterChange = (value) => {
-    setDateFilter(value);
+  const handleDayChange = (value) => {
+    setSelectedDay(value);
 
     if (value === "today") {
+      setSelectedYear(currentDate.getFullYear());
+      setSelectedMonth(currentDate.getMonth() + 1);
       setStartDate(today);
       setEndDate(today);
+      return;
+    }
+
+    if (value !== "range") {
+      setStartDate("");
+      setEndDate("");
     }
   };
 
+  const handleMonthChange = (value) => {
+    setSelectedMonth(value);
+    setSelectedDay("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const handleYearChange = (value) => {
+    setSelectedYear(Number(value));
+    setSelectedDay("all");
+    setSelectedMonth("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
   const handleStartDateChange = (value) => {
+    setSelectedDay("range");
     setStartDate(value);
-    setDateFilter("range");
+
+    if (value) {
+      const [year] = value.split("-").map(Number);
+      setSelectedYear(year);
+    }
   };
 
   const handleEndDateChange = (value) => {
+    setSelectedDay("range");
     setEndDate(value);
-    setDateFilter("range");
   };
+
+  const selectedDateText = useMemo(() => {
+    if (selectedDay === "today") {
+      return `วันนี้ ${formatThaiDate(today)}`;
+    }
+
+    if (selectedDay === "range") {
+      if (startDate && endDate) {
+        return `${formatThaiDate(startDate)} - ${formatThaiDate(endDate)}`;
+      }
+
+      if (startDate) {
+        return `ตั้งแต่ ${formatThaiDate(startDate)}`;
+      }
+
+      if (endDate) {
+        return `ถึง ${formatThaiDate(endDate)}`;
+      }
+
+      return "ระหว่างวันที่";
+    }
+
+    let text = "";
+
+    if (selectedDay === "all") {
+      text += "ทุกวัน";
+    } else {
+      text += `วันที่ ${selectedDay}`;
+    }
+
+    if (selectedMonth === "all") {
+      text += " • ทุกเดือน";
+    } else {
+      text += ` • ${monthNames[Number(selectedMonth) - 1]}`;
+    }
+
+    text += ` • พ.ศ. ${Number(selectedYear) + 543}`;
+
+    return text;
+  }, [
+    selectedDay,
+    selectedMonth,
+    selectedYear,
+    startDate,
+    endDate,
+    today,
+  ]);
 
   return (
     <div className="min-h-full space-y-5 bg-slate-50/50 pb-8">
@@ -254,32 +414,84 @@ function Dashboard() {
             </p>
           </div>
 
-          {/* DATE FILTER */}
+          {/* FILTER */}
           <div className="w-full lg:w-auto">
             <div className="rounded-2xl bg-white/10 p-2 backdrop-blur-md">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {/* วัน */}
                 <div className="relative">
                   <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-xs text-gray-800" />
 
                   <select
-                    value={dateFilter}
-                    onChange={(e) => handleDateFilterChange(e.target.value)}
-                    className="h-11 w-full appearance-none rounded-xl border-0 bg-white pl-9 pr-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:ring-2 focus:ring-white/50"
+                    value={selectedDay}
+                    onChange={(e) => handleDayChange(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border-0 bg-white pl-9 pr-4 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
                   >
-                    <option value="all">ทั้งหมด</option>
+                    <option value="all">วัน: ทั้งหมด</option>
                     <option value="today">วันนี้</option>
-                    <option value="range">ระหว่างวันที่</option>
+                    <option value="range">ระหว่างวัน</option>
+
+                    {days.map((day) => (
+                      <option key={day} value={day}>
+                        วันที่ {day}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {dateFilter === "range" && (
-                  <>
+                {/* เดือน */}
+                <div className="relative">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => handleMonthChange(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border-0 bg-white px-4 pr-8 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    <option value="all">เดือน: ทั้งหมด</option>
+
+                    {availableMonths.map((month) => (
+                      <option key={month} value={month}>
+                        {monthNames[month - 1]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* ปี */}
+                <div className="relative">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => handleYearChange(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border-0 bg-white px-4 pr-8 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        พ.ศ. {year + 543}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* ระหว่างวัน */}
+              {selectedDay === "range" && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1 block px-1 text-xs font-medium text-white">
+                      วันที่เริ่มต้น
+                    </label>
+
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => handleStartDateChange(e.target.value)}
                       className="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
                     />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block px-1 text-xs font-medium text-white">
+                      วันที่สิ้นสุด
+                    </label>
 
                     <input
                       type="date"
@@ -287,9 +499,9 @@ function Dashboard() {
                       onChange={(e) => handleEndDateChange(e.target.value)}
                       className="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
                     />
-                  </>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -298,7 +510,7 @@ function Dashboard() {
       {/* SELECTED DATE */}
       <div className="flex items-center gap-2 px-1 text-sm font-semibold text-gray-700">
         <FaCalendarAlt className="text-green-600" />
-        <span>{formatThaiDateRange()}</span>
+        <span>{selectedDateText}</span>
       </div>
 
       {/* SUMMARY */}
@@ -314,7 +526,7 @@ function Dashboard() {
                   รายรับ
                 </p>
                 <p className="mt-1 text-[11px] text-gray-900 sm:text-xs">
-                  {formatThaiDateRange()}
+                  {selectedDateText}
                 </p>
               </div>
 
@@ -345,7 +557,7 @@ function Dashboard() {
                   รายจ่าย
                 </p>
                 <p className="mt-1 text-[11px] text-gray-800 sm:text-xs">
-                  {formatThaiDateRange()}
+                  {selectedDateText}
                 </p>
               </div>
 
@@ -376,7 +588,7 @@ function Dashboard() {
               </p>
 
               <p className="mt-1 text-[13px] text-gray-800 sm:text-xs">
-                {formatThaiDateRange()}
+                {selectedDateText}
               </p>
 
               <p className="mt-4 truncate text-xl font-extrabold tracking-tight text-blue-600 sm:text-2xl md:text-3xl">
@@ -410,61 +622,76 @@ function Dashboard() {
               </h2>
 
               <p className="text-xs text-gray-800 sm:text-sm">
-                {formatThaiDateRange()}
+                {selectedDateText}
               </p>
             </div>
           </div>
         </div>
 
         <div className="h-[270px] w-full px-1 pb-3 pt-3 sm:h-[350px] sm:px-4 sm:pb-5 md:h-[380px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="4 4"
+                  vertical={false}
+                  stroke="#f1f5f9"
+                />
 
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: "#64748b" }}
-                axisLine={false}
-                tickLine={false}
-              />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: "#64748b" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-              <YAxis
-                tick={{ fontSize: 10, fill: "#64748b" }}
-                tickFormatter={(value) => Number(value).toLocaleString()}
-                axisLine={false}
-                tickLine={false}
-              />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#64748b" }}
+                  tickFormatter={(value) => Number(value).toLocaleString()}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "14px",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-                }}
-                formatter={(value) => `${Number(value).toLocaleString()} บาท`}
-              />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "14px",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                  }}
+                  formatter={(value) =>
+                    `${Number(value).toLocaleString()} บาท`
+                  }
+                />
 
-              <Line
-                type="monotone"
-                dataKey="income"
-                name="รายรับ"
-                stroke="#16a34a"
-                strokeWidth={3}
-                dot={{ r: 2 }}
-                activeDot={{ r: 5 }}
-              />
+                <Line
+                  type="monotone"
+                  dataKey="income"
+                  name="รายรับ"
+                  stroke="#16a34a"
+                  strokeWidth={3}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 5 }}
+                />
 
-              <Line
-                type="monotone"
-                dataKey="expense"
-                name="รายจ่าย"
-                stroke="#ef4444"
-                strokeWidth={3}
-                dot={{ r: 2 }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+                <Line
+                  type="monotone"
+                  dataKey="expense"
+                  name="รายจ่าย"
+                  stroke="#ef4444"
+                  strokeWidth={3}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-gray-500">
+              ไม่มีข้อมูลสำหรับช่วงเวลาที่เลือก
+            </div>
+          )}
         </div>
       </section>
 
@@ -484,7 +711,7 @@ function Dashboard() {
                 </h2>
 
                 <p className="text-xs text-gray-800">
-                  {formatThaiDateRange()}
+                  {selectedDateText}
                 </p>
               </div>
             </div>
@@ -502,7 +729,9 @@ function Dashboard() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="h-9 w-9 animate-spin rounded-full border-4 border-green-100 border-t-green-600" />
-                <p className="mt-4 text-sm text-gray-800">กำลังโหลดข้อมูล...</p>
+                <p className="mt-4 text-sm text-gray-800">
+                  กำลังโหลดข้อมูล...
+                </p>
               </div>
             ) : latestTransactions.length > 0 ? (
               <div className="space-y-3">
@@ -515,7 +744,13 @@ function Dashboard() {
                       className="group rounded-xl border border-gray-100 bg-gray-50/50 p-3 transition-all duration-200 hover:border-gray-200 hover:bg-white hover:shadow-sm sm:p-4"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"}`}>
+                        <div
+                          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${
+                            isIncome
+                              ? "bg-green-100 text-green-600"
+                              : "bg-red-100 text-red-500"
+                          }`}
+                        >
                           {isIncome ? <FaArrowUp /> : <FaArrowDown />}
                         </div>
 
@@ -531,26 +766,40 @@ function Dashboard() {
                               </p>
                             </div>
 
-                            <p className={`flex-shrink-0 text-sm font-extrabold ${isIncome ? "text-green-600" : "text-red-500"}`}>
+                            <p
+                              className={`flex-shrink-0 text-sm font-extrabold ${
+                                isIncome
+                                  ? "text-green-600"
+                                  : "text-red-500"
+                              }`}
+                            >
                               {isIncome ? "+" : "-"}
-                              {Number(isIncome ? item.income : item.expense).toLocaleString()}{" "}
+                              {Number(
+                                isIncome ? item.income : item.expense,
+                              ).toLocaleString()}{" "}
                               บาท
                             </p>
                           </div>
 
                           <div className="mt-2 grid gap-1 text-xs text-gray-900 sm:grid-cols-2">
                             <p className="truncate">
-                              <span className="font-medium text-gray-700">ประเภท:</span>{" "}
+                              <span className="font-medium text-gray-700">
+                                ประเภท:
+                              </span>{" "}
                               {item.typeName || "-"}
                             </p>
 
                             <p className="truncate">
-                              <span className="font-medium text-gray-700">หมวดหมู่:</span>{" "}
+                              <span className="font-medium text-gray-700">
+                                หมวดหมู่:
+                              </span>{" "}
                               {item.categoryName || "-"}
                             </p>
 
                             <p className="truncate sm:col-span-2">
-                              <span className="font-medium text-gray-700">หมายเหตุ:</span>{" "}
+                              <span className="font-medium text-gray-700">
+                                หมายเหตุ:
+                              </span>{" "}
                               {item.note || "-"}
                             </p>
                           </div>
@@ -602,9 +851,14 @@ function Dashboard() {
             <div className="divide-y divide-gray-100">
               <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">จำนวนรายการ</p>
-                  <p className="mt-0.5 text-xs text-gray-800">รายการทั้งหมด</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการ
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-800">
+                    รายการทั้งหมด
+                  </p>
                 </div>
+
                 <strong className="text-sm font-bold text-gray-900">
                   {summary.totalTransactions.toLocaleString()}
                 </strong>
@@ -612,9 +866,14 @@ function Dashboard() {
 
               <div className="flex items-center justify-between gap-4 py-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">จำนวนรายการรายรับ</p>
-                  <p className="mt-0.5 text-xs text-gray-800">รายการเงินเข้า</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการรายรับ
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-800">
+                    รายการเงินเข้า
+                  </p>
                 </div>
+
                 <strong className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-600">
                   {summary.incomeTransactions.toLocaleString()}
                 </strong>
@@ -622,23 +881,34 @@ function Dashboard() {
 
               <div className="flex items-center justify-between gap-4 py-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">จำนวนรายการรายจ่าย</p>
-                  <p className="mt-0.5 text-xs text-gray-800">รายการเงินออก</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    จำนวนรายการรายจ่าย
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-800">
+                    รายการเงินออก
+                  </p>
                 </div>
+
                 <strong className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-bold text-red-500">
                   {summary.expenseTransactions.toLocaleString()}
                 </strong>
               </div>
 
               <div className="flex items-center justify-between gap-4 py-4">
-                <span className="text-sm font-medium text-gray-700">รายรับทั้งหมด</span>
+                <span className="text-sm font-medium text-gray-700">
+                  รายรับทั้งหมด
+                </span>
+
                 <strong className="text-sm font-bold text-green-600">
                   {summary.totalIncome.toLocaleString()} บาท
                 </strong>
               </div>
 
               <div className="flex items-center justify-between gap-4 py-4">
-                <span className="text-sm font-medium text-gray-700">รายจ่ายทั้งหมด</span>
+                <span className="text-sm font-medium text-gray-700">
+                  รายจ่ายทั้งหมด
+                </span>
+
                 <strong className="text-sm font-bold text-red-500">
                   {summary.totalExpense.toLocaleString()} บาท
                 </strong>
@@ -648,14 +918,20 @@ function Dashboard() {
             <div className="mt-3 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-gray-800">คงเหลือสุทธิ</p>
-                  <p className="mt-1 text-xs text-gray-800">รายรับ - รายจ่าย</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    คงเหลือสุทธิ
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-800">
+                    รายรับ - รายจ่าย
+                  </p>
                 </div>
 
                 <div className="text-right">
                   <p className="text-xl font-extrabold text-blue-600 sm:text-2xl">
                     {summary.balance.toLocaleString()}
                   </p>
+
                   <p className="text-xs font-medium text-blue-400">บาท</p>
                 </div>
               </div>
