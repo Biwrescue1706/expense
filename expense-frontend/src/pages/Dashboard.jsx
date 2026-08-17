@@ -20,13 +20,15 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts";
 
 function Dashboard() {
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const today = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,21 +53,6 @@ function Dashboard() {
       setLoading(false);
     }
   };
-
-  const monthNames = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
 
   const thaiMonthNames = [
     "ม.ค.",
@@ -93,48 +80,58 @@ function Dashboard() {
     const month = Number(parts[1]);
     const day = Number(parts[2]);
 
+    if (!year || !month || !day) return date;
+
     return `${day} ${thaiMonthNames[month - 1]} ${year + 543}`;
   };
 
-  const years = useMemo(() => {
-    const yearSet = new Set();
-
-    transactions.forEach((item) => {
-      if (!item.date) return;
-
-      const parts = String(item.date).split("-");
-
-      if (parts.length !== 3) return;
-
-      const year = Number(parts[0]);
-
-      if (!isNaN(year)) {
-        yearSet.add(year);
+  const formatThaiDateRange = () => {
+    if (dateFilter === "all") return "ทั้งหมด";
+    if (dateFilter === "today") return `วันนี้ ${formatThaiDate(today)}`;
+    if (dateFilter === "range") {
+      if (!startDate && !endDate) return "เลือกระหว่างวันที่";
+      if (startDate && endDate) {
+        return `${formatThaiDate(startDate)} - ${formatThaiDate(endDate)}`;
       }
-    });
-
-    yearSet.add(currentDate.getFullYear());
-
-    return Array.from(yearSet).sort((a, b) => b - a);
-  }, [transactions]);
+      if (startDate) return `ตั้งแต่ ${formatThaiDate(startDate)}`;
+      return `ถึง ${formatThaiDate(endDate)}`;
+    }
+    return "ทั้งหมด";
+  };
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((item) => {
       if (!item.date) return false;
 
-      const parts = String(item.date).split("-");
+      const itemDate = String(item.date).substring(0, 10);
 
-      if (parts.length !== 3) return false;
+      if (dateFilter === "all") {
+        return true;
+      }
 
-      const year = Number(parts[0]);
-      const month = Number(parts[1]);
+      if (dateFilter === "today") {
+        return itemDate === today;
+      }
 
-      return (
-        year === selectedYear &&
-        (selectedMonth === "all" || month === Number(selectedMonth))
-      );
+      if (dateFilter === "range") {
+        if (startDate && endDate) {
+          return itemDate >= startDate && itemDate <= endDate;
+        }
+
+        if (startDate) {
+          return itemDate >= startDate;
+        }
+
+        if (endDate) {
+          return itemDate <= endDate;
+        }
+
+        return true;
+      }
+
+      return true;
     });
-  }, [transactions, selectedMonth, selectedYear]);
+  }, [transactions, dateFilter, startDate, endDate, today]);
 
   const summary = useMemo(() => {
     let totalIncome = 0;
@@ -163,101 +160,77 @@ function Dashboard() {
     };
   }, [filteredTransactions]);
 
+  // เรียงรายการล่าสุดจาก createdAt ก่อน
   const latestTransactions = useMemo(() => {
     return [...filteredTransactions]
-      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .sort((a, b) => {
+        const dateA = String(a.date || "").substring(0, 10);
+        const dateB = String(b.date || "").substring(0, 10);
+
+        if (dateA !== dateB) {
+          return dateB.localeCompare(dateA);
+        }
+
+        const createdA = new Date(a.createdAt || 0).getTime();
+        const createdB = new Date(b.createdAt || 0).getTime();
+
+        return createdB - createdA;
+      })
       .slice(0, 5);
   }, [filteredTransactions]);
 
   const chartData = useMemo(() => {
-    if (selectedMonth === "all") {
-      const data = monthNames.map((month, index) => ({
-        month: thaiMonthNames[index],
-        income: 0,
-        expense: 0,
+    const grouped = {};
+
+    filteredTransactions.forEach((item) => {
+      if (!item.date) return;
+
+      const date = String(item.date).substring(0, 10);
+
+      if (!grouped[date]) {
+        grouped[date] = {
+          date,
+          income: 0,
+          expense: 0,
+        };
+      }
+
+      grouped[date].income += Number(item.income || 0);
+      grouped[date].expense += Number(item.expense || 0);
+    });
+
+    return Object.values(grouped)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((item) => ({
+        date: formatThaiDate(item.date),
+        income: item.income,
+        expense: item.expense,
       }));
+  }, [filteredTransactions]);
 
-      filteredTransactions.forEach((item) => {
-        if (!item.date) return;
+  const handleDateFilterChange = (value) => {
+    setDateFilter(value);
 
-        const parts = String(item.date).split("-");
-
-        if (parts.length !== 3) return;
-
-        const monthIndex = Number(parts[1]) - 1;
-
-        if (monthIndex >= 0 && monthIndex < 12) {
-          data[monthIndex].income += Number(item.income || 0);
-
-          data[monthIndex].expense += Number(item.expense || 0);
-        }
-      });
-
-      return data;
+    if (value === "today") {
+      setStartDate(today);
+      setEndDate(today);
     }
+  };
 
-    const daysInMonth = new Date(
-      selectedYear,
-      Number(selectedMonth),
-      0,
-    ).getDate();
+  const handleStartDateChange = (value) => {
+    setStartDate(value);
+    setDateFilter("range");
+  };
 
-    const data = [];
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      let income = 0;
-      let expense = 0;
-
-      filteredTransactions.forEach((item) => {
-        if (!item.date) return;
-
-        const parts = String(item.date).split("-");
-
-        if (parts.length !== 3) return;
-
-        if (Number(parts[2]) === day) {
-          income += Number(item.income || 0);
-          expense += Number(item.expense || 0);
-        }
-      });
-
-      data.push({
-        month: `${day}`,
-        income,
-        expense,
-      });
-    }
-
-    return data;
-  }, [filteredTransactions, selectedMonth, selectedYear]);
-
-  const selectedMonthText =
-    selectedMonth === "all" ? "ทั้งหมด" : monthNames[Number(selectedMonth) - 1];
+  const handleEndDateChange = (value) => {
+    setEndDate(value);
+    setDateFilter("range");
+  };
 
   return (
     <div className="min-h-full space-y-5 bg-slate-50/50 pb-8">
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-      <section
-        className="
-          relative
-          overflow-hidden
-          rounded-2xl
-          bg-gradient-to-r
-          from-green-600
-          via-emerald-600
-          to-teal-600
-          p-5
-          text-white
-          shadow-lg
-          shadow-green-600/10
-
-          sm:p-6
-          md:p-7
-        "
-      >
-        {/* Background decoration */}
+      {/* HEADER */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 p-5 text-white shadow-lg shadow-green-600/10 sm:p-6 md:p-7">
         <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
@@ -267,7 +240,6 @@ function Dashboard() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
                 <FaChartLine />
               </div>
-
               <span className="text-sm font-medium text-green-50">
                 Financial Dashboard
               </span>
@@ -282,111 +254,57 @@ function Dashboard() {
             </p>
           </div>
 
-          {/* Filters */}
+          {/* DATE FILTER */}
           <div className="w-full lg:w-auto">
             <div className="rounded-2xl bg-white/10 p-2 backdrop-blur-md">
-              <div className="grid grid-cols-2 gap-2 sm:flex">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="relative">
                   <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-xs text-gray-800" />
 
                   <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="
-                      h-11
-                      w-full
-                      appearance-none
-                      rounded-xl
-                      border-0
-                      bg-white
-                      pl-9
-                      pr-8
-                      text-sm
-                      font-semibold
-                      text-gray-800
-                      shadow-sm
-                      outline-none
-                      transition
-                      focus:ring-2
-                      focus:ring-white/50
-
-                      sm:min-w-[145px]
-                    "
+                    value={dateFilter}
+                    onChange={(e) => handleDateFilterChange(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border-0 bg-white pl-9 pr-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:ring-2 focus:ring-white/50"
                   >
                     <option value="all">ทั้งหมด</option>
-
-                    {monthNames.map((month, index) => (
-                      <option key={index} value={index + 1}>
-                        {month}
-                      </option>
-                    ))}
+                    <option value="today">วันนี้</option>
+                    <option value="range">ระหว่างวันที่</option>
                   </select>
                 </div>
 
-                <div className="relative">
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="
-                      h-11
-                      w-full
-                      appearance-none
-                      rounded-xl
-                      border-0
-                      bg-white
-                      px-4
-                      pr-8
-                      text-sm
-                      font-semibold
-                      text-gray-800
-                      shadow-sm
-                      outline-none
-                      transition
-                      focus:ring-2
-                      focus:ring-white/50
+                {dateFilter === "range" && (
+                  <>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                      className="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
+                    />
 
-                      sm:min-w-[110px]
-                    "
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year + 543}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => handleEndDateChange(e.target.value)}
+                      className="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* =====================================================
-          SUMMARY CARDS
-      ====================================================== */}
+      {/* SELECTED DATE */}
+      <div className="flex items-center gap-2 px-1 text-sm font-semibold text-gray-700">
+        <FaCalendarAlt className="text-green-600" />
+        <span>{formatThaiDateRange()}</span>
+      </div>
+
+      {/* SUMMARY */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-5">
         {/* Income */}
-        <div
-          className="
-            group
-            relative
-            overflow-hidden
-            rounded-2xl
-            border
-            border-green-100
-            bg-white
-            p-4
-            shadow-sm
-            transition-all
-            duration-300
-            hover:-translate-y-1
-            hover:shadow-lg
-            hover:shadow-green-500/10
-
-            sm:p-5
-            md:p-6
-          "
-        >
+        <div className="group relative overflow-hidden rounded-2xl border border-green-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-green-500/10 sm:p-5 md:p-6">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-green-50 transition-transform duration-300 group-hover:scale-125" />
 
           <div className="relative">
@@ -395,9 +313,8 @@ function Dashboard() {
                 <p className="text-xs font-semibold text-gray-900 sm:text-sm">
                   รายรับ
                 </p>
-
                 <p className="mt-1 text-[11px] text-gray-900 sm:text-xs">
-                  {selectedMonthText} {selectedYear + 543}
+                  {formatThaiDateRange()}
                 </p>
               </div>
 
@@ -418,27 +335,7 @@ function Dashboard() {
         </div>
 
         {/* Expense */}
-        <div
-          className="
-            group
-            relative
-            overflow-hidden
-            rounded-2xl
-            border
-            border-red-100
-            bg-white
-            p-4
-            shadow-sm
-            transition-all
-            duration-300
-            hover:-translate-y-1
-            hover:shadow-lg
-            hover:shadow-red-500/10
-
-            sm:p-5
-            md:p-6
-          "
-        >
+        <div className="group relative overflow-hidden rounded-2xl border border-red-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-500/10 sm:p-5 md:p-6">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-50 transition-transform duration-300 group-hover:scale-125" />
 
           <div className="relative">
@@ -447,9 +344,8 @@ function Dashboard() {
                 <p className="text-xs font-semibold text-gray-900 sm:text-sm">
                   รายจ่าย
                 </p>
-
                 <p className="mt-1 text-[11px] text-gray-800 sm:text-xs">
-                  {selectedMonthText} {selectedYear + 543}
+                  {formatThaiDateRange()}
                 </p>
               </div>
 
@@ -470,29 +366,7 @@ function Dashboard() {
         </div>
 
         {/* Balance */}
-        <div
-          className="
-            col-span-2
-            group
-            relative
-            overflow-hidden
-            rounded-2xl
-            border
-            border-blue-100
-            bg-white
-            p-4
-            shadow-sm
-            transition-all
-            duration-300
-            hover:-translate-y-1
-            hover:shadow-lg
-            hover:shadow-blue-500/10
-
-            sm:p-5
-            md:p-6
-            lg:col-span-1
-          "
-        >
+        <div className="col-span-2 group relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 sm:p-5 md:p-6 lg:col-span-1">
           <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-50 transition-transform duration-300 group-hover:scale-125" />
 
           <div className="relative flex items-center justify-between gap-4">
@@ -501,8 +375,8 @@ function Dashboard() {
                 คงเหลือ
               </p>
 
-              <p className="mt-1 text-[16px] text-gray-800 sm:text-xs">
-                {selectedMonthText} {selectedYear + 543}
+              <p className="mt-1 text-[13px] text-gray-800 sm:text-xs">
+                {formatThaiDateRange()}
               </p>
 
               <p className="mt-4 truncate text-xl font-extrabold tracking-tight text-blue-600 sm:text-2xl md:text-3xl">
@@ -522,74 +396,40 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* =====================================================
-          CHART
-      ====================================================== */}
+      {/* CHART */}
       <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:p-5 md:flex-row md:items-center md:justify-between md:p-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
-                <FaChartLine />
-              </div>
-
-              <div>
-                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
-                  รายรับ - รายจ่าย
-                </h2>
-
-                <p className="text-xs text-gray-800 sm:text-sm">
-                  {selectedMonthText} {selectedYear + 543}
-                </p>
-              </div>
+        <div className="flex items-center justify-between border-b border-gray-100 p-4 sm:p-5 md:p-6">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
+              <FaChartLine />
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-              รายรับ
-            </span>
+            <div>
+              <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                รายรับ - รายจ่าย
+              </h2>
 
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-              รายจ่าย
-            </span>
+              <p className="text-xs text-gray-800 sm:text-sm">
+                {formatThaiDateRange()}
+              </p>
+            </div>
           </div>
         </div>
 
         <div className="h-[270px] w-full px-1 pb-3 pt-3 sm:h-[350px] sm:px-4 sm:pb-5 md:h-[380px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{
-                top: 10,
-                right: 10,
-                left: -15,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="4 4"
-                vertical={false}
-                stroke="#f1f5f9"
-              />
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
 
               <XAxis
-                dataKey="month"
-                tick={{
-                  fontSize: 11,
-                  fill: "#64748b",
-                }}
+                dataKey="date"
+                tick={{ fontSize: 10, fill: "#64748b" }}
                 axisLine={false}
                 tickLine={false}
               />
 
               <YAxis
-                tick={{
-                  fontSize: 10,
-                  fill: "#64748b",
-                }}
+                tick={{ fontSize: 10, fill: "#64748b" }}
                 tickFormatter={(value) => Number(value).toLocaleString()}
                 axisLine={false}
                 tickLine={false}
@@ -602,17 +442,6 @@ function Dashboard() {
                   boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
                 }}
                 formatter={(value) => `${Number(value).toLocaleString()} บาท`}
-                labelFormatter={(label) =>
-                  selectedMonth === "all" ? label : `วันที่ ${label}`
-                }
-              />
-
-              <Legend
-                verticalAlign="top"
-                height={0}
-                wrapperStyle={{
-                  display: "none",
-                }}
               />
 
               <Line
@@ -639,48 +468,30 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* =====================================================
-          BOTTOM CONTENT
-      ====================================================== */}
+      {/* BOTTOM CONTENT */}
       <section className="grid gap-5 lg:grid-cols-2">
         {/* Latest Transactions */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 p-4 sm:p-5 md:p-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
-                  <FaReceipt />
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 text-green-600">
+                <FaReceipt />
+              </div>
 
-                <div>
-                  <h2 className="text-base font-bold text-gray-900 sm:text-lg">
-                    รายการล่าสุด
-                  </h2>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                  รายการล่าสุด
+                </h2>
 
-                  <p className="text-xs text-gray-800">
-                    {selectedMonthText} {selectedYear + 543}
-                  </p>
-                </div>
+                <p className="text-xs text-gray-800">
+                  {formatThaiDateRange()}
+                </p>
               </div>
             </div>
 
             <Link
               to="/transactions"
-              className="
-                group
-                flex
-                items-center
-                gap-1
-                rounded-lg
-                px-2
-                py-2
-                text-xs
-                font-semibold
-                text-green-600
-                transition
-                hover:bg-green-50
-                sm:text-sm
-              "
+              className="group flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-green-600 transition hover:bg-green-50 sm:text-sm"
             >
               ดูทั้งหมด
               <FaChevronRight className="text-[10px] transition-transform group-hover:translate-x-0.5" />
@@ -691,7 +502,6 @@ function Dashboard() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="h-9 w-9 animate-spin rounded-full border-4 border-green-100 border-t-green-600" />
-
                 <p className="mt-4 text-sm text-gray-800">กำลังโหลดข้อมูล...</p>
               </div>
             ) : latestTransactions.length > 0 ? (
@@ -702,44 +512,13 @@ function Dashboard() {
                   return (
                     <div
                       key={item.id}
-                      className="
-                        group
-                        rounded-xl
-                        border
-                        border-gray-100
-                        bg-gray-50/50
-                        p-3
-                        transition-all
-                        duration-200
-                        hover:border-gray-200
-                        hover:bg-white
-                        hover:shadow-sm
-
-                        sm:p-4
-                      "
+                      className="group rounded-xl border border-gray-100 bg-gray-50/50 p-3 transition-all duration-200 hover:border-gray-200 hover:bg-white hover:shadow-sm sm:p-4"
                     >
                       <div className="flex items-start gap-3">
-                        {/* Icon */}
-                        <div
-                          className={`
-                            flex
-                            h-10
-                            w-10
-                            flex-shrink-0
-                            items-center
-                            justify-center
-                            rounded-xl
-                            ${
-                              isIncome
-                                ? "bg-green-100 text-green-600"
-                                : "bg-red-100 text-red-500"
-                            }
-                          `}
-                        >
+                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"}`}>
                           {isIncome ? <FaArrowUp /> : <FaArrowDown />}
                         </div>
 
-                        {/* Main */}
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                             <div className="min-w-0">
@@ -752,42 +531,26 @@ function Dashboard() {
                               </p>
                             </div>
 
-                            <p
-                              className={`
-                                flex-shrink-0
-                                text-sm
-                                font-extrabold
-                                ${isIncome ? "text-green-600" : "text-red-500"}
-                              `}
-                            >
+                            <p className={`flex-shrink-0 text-sm font-extrabold ${isIncome ? "text-green-600" : "text-red-500"}`}>
                               {isIncome ? "+" : "-"}
-                              {Number(
-                                isIncome ? item.income : item.expense,
-                              ).toLocaleString()}{" "}
+                              {Number(isIncome ? item.income : item.expense).toLocaleString()}{" "}
                               บาท
                             </p>
                           </div>
 
-                          {/* Details */}
                           <div className="mt-2 grid gap-1 text-xs text-gray-900 sm:grid-cols-2">
                             <p className="truncate">
-                              <span className="font-medium text-gray-700">
-                                ประเภท:
-                              </span>{" "}
+                              <span className="font-medium text-gray-700">ประเภท:</span>{" "}
                               {item.typeName || "-"}
                             </p>
 
                             <p className="truncate">
-                              <span className="font-medium text-gray-700">
-                                หมวดหมู่:
-                              </span>{" "}
+                              <span className="font-medium text-gray-700">หมวดหมู่:</span>{" "}
                               {item.categoryName || "-"}
                             </p>
 
                             <p className="truncate sm:col-span-2">
-                              <span className="font-medium text-gray-700">
-                                หมายเหตุ:
-                              </span>{" "}
+                              <span className="font-medium text-gray-700">หมายเหตุ:</span>{" "}
                               {item.note || "-"}
                             </p>
                           </div>
@@ -837,82 +600,55 @@ function Dashboard() {
 
           <div className="p-4 sm:p-5 md:p-6">
             <div className="divide-y divide-gray-100">
-              {/* Total Transactions */}
               <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    จำนวนรายการ
-                  </p>
-
+                  <p className="text-sm font-medium text-gray-700">จำนวนรายการ</p>
                   <p className="mt-0.5 text-xs text-gray-800">รายการทั้งหมด</p>
                 </div>
-
                 <strong className="text-sm font-bold text-gray-900">
                   {summary.totalTransactions.toLocaleString()}
                 </strong>
               </div>
 
-              {/* Income Transactions */}
               <div className="flex items-center justify-between gap-4 py-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    จำนวนรายการรายรับ
-                  </p>
-
+                  <p className="text-sm font-medium text-gray-700">จำนวนรายการรายรับ</p>
                   <p className="mt-0.5 text-xs text-gray-800">รายการเงินเข้า</p>
                 </div>
-
                 <strong className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-600">
                   {summary.incomeTransactions.toLocaleString()}
                 </strong>
               </div>
 
-              {/* Expense Transactions */}
               <div className="flex items-center justify-between gap-4 py-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    จำนวนรายการรายจ่าย
-                  </p>
-
+                  <p className="text-sm font-medium text-gray-700">จำนวนรายการรายจ่าย</p>
                   <p className="mt-0.5 text-xs text-gray-800">รายการเงินออก</p>
                 </div>
-
                 <strong className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-bold text-red-500">
                   {summary.expenseTransactions.toLocaleString()}
                 </strong>
               </div>
 
-              {/* Income */}
               <div className="flex items-center justify-between gap-4 py-4">
-                <span className="text-sm font-medium text-gray-700">
-                  รายรับทั้งหมด
-                </span>
-
+                <span className="text-sm font-medium text-gray-700">รายรับทั้งหมด</span>
                 <strong className="text-sm font-bold text-green-600">
                   {summary.totalIncome.toLocaleString()} บาท
                 </strong>
               </div>
 
-              {/* Expense */}
               <div className="flex items-center justify-between gap-4 py-4">
-                <span className="text-sm font-medium text-gray-700">
-                  รายจ่ายทั้งหมด
-                </span>
-
+                <span className="text-sm font-medium text-gray-700">รายจ่ายทั้งหมด</span>
                 <strong className="text-sm font-bold text-red-500">
                   {summary.totalExpense.toLocaleString()} บาท
                 </strong>
               </div>
             </div>
 
-            {/* Balance */}
             <div className="mt-3 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-gray-800">
-                    คงเหลือสุทธิ
-                  </p>
-
+                  <p className="text-sm font-bold text-gray-800">คงเหลือสุทธิ</p>
                   <p className="mt-1 text-xs text-gray-800">รายรับ - รายจ่าย</p>
                 </div>
 
@@ -920,7 +656,6 @@ function Dashboard() {
                   <p className="text-xl font-extrabold text-blue-600 sm:text-2xl">
                     {summary.balance.toLocaleString()}
                   </p>
-
                   <p className="text-xs font-medium text-blue-400">บาท</p>
                 </div>
               </div>
