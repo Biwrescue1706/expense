@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const sheet = require("./sheet.service");
 
-const JWT_SECRET = process.env.JWT_SECRET || "phuwanat_super_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Register
 exports.register = async (data) => {

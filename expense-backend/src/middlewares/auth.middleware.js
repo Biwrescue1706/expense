@@ -1,7 +1,7 @@
 // expense-backend/src/middlewares/auth.middleware.js
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "expense-secret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = (req, res, next) => {
     let token = req.cookies?.token;
