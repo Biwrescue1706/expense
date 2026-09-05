@@ -14,16 +14,37 @@ exports.register = async (req, res) => {
 // Login
 exports.login = async (req, res) => {
     try {
+        console.log("LOGIN BODY:", {
+            username: req.body?.username,
+            hasPassword: !!req.body?.password
+        });
+
         const result = await authService.login(req.body);
+
+        console.log("LOGIN SUCCESS:", result.user.username);
+
         res.cookie("token", result.token, {
             httpOnly: true,
             secure: true,
-            sameSite: "lax",
+            sameSite: "none",
             maxAge: 30 * 60 * 1000
         });
-        return res.status(200).json({ success: true, message: "เข้าสู่ระบบสำเร็จ", user: result.user });
+
+        return res.status(200).json({
+            success: true,
+            message: "เข้าสู่ระบบสำเร็จ",
+            user: result.user
+        });
+
     } catch (err) {
-        return res.status(401).json({ success: false, message: err.message });
+        console.error("LOGIN ERROR:", err);
+        console.error("LOGIN ERROR MESSAGE:", err.message);
+        console.error("LOGIN ERROR STACK:", err.stack);
+
+        return res.status(401).json({
+            success: false,
+            message: err.message
+        });
     }
 };
 
