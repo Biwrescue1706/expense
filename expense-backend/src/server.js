@@ -29,7 +29,8 @@ const categoryRoute = require("./routes/category.route");
 const transactionRoute = require("./routes/transaction.route");
 const dashboardRoute = require("./routes/dashboard.route");
 const userRoute = require("./routes/user.route");
-
+const accountTypeRoute = require("./routes/accountType.route");
+const accountsRoute = require("./routes/accounts.route");
 app.get("/", (req, res) => {
     res.json({
         success: true,
@@ -43,9 +44,11 @@ app.use("/api/users", userRoute);
 app.use("/api/types", typeRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/transactions", transactionRoute);
+app.use("/api/account-types", accountTypeRoute);
+app.use("/api/accounts", accountsRoute);
 
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });

@@ -1,10 +1,9 @@
-const transactionService = require("../services/transaction.service");
+const accountTypeService = require("../services/accountType.service");
 
 // GET
-exports.getTransactions = async (req, res) => {
+exports.getAccountTypes = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const data = await transactionService.getAll(userId);
+        const data = await accountTypeService.getAll();
 
         res.json({
             success: true,
@@ -19,13 +18,9 @@ exports.getTransactions = async (req, res) => {
 };
 
 // CREATE
-exports.createTransaction = async (req, res) => {
+exports.createAccountType = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const result = await transactionService.create(
-            userId,
-            req.body
-        );
+        const result = await accountTypeService.create(req.body);
 
         res.status(201).json(result);
     } catch (err) {
@@ -37,11 +32,9 @@ exports.createTransaction = async (req, res) => {
 };
 
 // UPDATE
-exports.updateTransaction = async (req, res) => {
+exports.updateAccountType = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const result = await transactionService.update(
-            userId,
+        const result = await accountTypeService.update(
             req.params.id,
             req.body
         );
@@ -56,13 +49,9 @@ exports.updateTransaction = async (req, res) => {
 };
 
 // DELETE
-exports.deleteTransaction = async (req, res) => {
+exports.deleteAccountType = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const result = await transactionService.remove(
-            userId,
-            req.params.id
-        );
+        const result = await accountTypeService.remove(req.params.id);
 
         res.json(result);
     } catch (err) {

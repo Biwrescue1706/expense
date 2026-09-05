@@ -36,21 +36,13 @@ exports.register = async (data) => {
 exports.login = async (data) => {
     const { username, password } = data;
 
-    console.log("========== LOGIN DEBUG ==========");
-    console.log("Username:", username);
-    console.log("Has password:", !!password);
-
     if (!username || !password) {
         throw new Error("กรุณากรอก Username / Email และ Password");
     }
 
     const allRows = await sheet.getRows("Users");
 
-    console.log("Total rows:", allRows?.length);
-
     const rows = (allRows || []).slice(1);
-
-    console.log("User rows:", rows.length);
 
     const login = String(username).trim().toLowerCase();
 
@@ -61,25 +53,11 @@ exports.login = async (data) => {
         return userName === login || email === login;
     });
 
-    console.log("User found:", !!user);
-
-    if (user) {
-        console.log("User ID:", user[0]);
-        console.log("Username in Sheet:", user[1]);
-        console.log("Email in Sheet:", user[2]);
-        console.log("Password hash exists:", !!user[3]);
-        console.log("Password hash length:", user[3]?.length);
-        console.log("Password hash prefix:", user[3]?.substring(0, 7));
-    }
-
     if (!user) {
         throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
     }
 
     const ok = await bcrypt.compare(password, String(user[3] || ""));
-
-    console.log("Password match:", ok);
-    console.log("================================");
 
     if (!ok) {
         throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
