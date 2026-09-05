@@ -36,35 +36,82 @@ exports.register = async (data) => {
 exports.login = async (data) => {
     const { username, password } = data;
 
-    if (!username || !password) throw new Error("กรุณากรอก Username / Email และ Password");
+    console.log("========== LOGIN DEBUG ==========");
+    console.log("Username:", username);
+    console.log("Has password:", !!password);
 
-    const rows = (await sheet.getRows("Users")).slice(1);
-    const login = username.trim().toLowerCase();
+    if (!username || !password) {
+        throw new Error("กรุณากรอก Username / Email และ Password");
+    }
+
+    const allRows = await sheet.getRows("Users");
+
+    console.log("Total rows:", allRows?.length);
+
+    const rows = (allRows || []).slice(1);
+
+    console.log("User rows:", rows.length);
+
+    const login = String(username).trim().toLowerCase();
 
     const user = rows.find(row => {
-        const userName = row[1]?.trim().toLowerCase();
-        const email = row[2]?.trim().toLowerCase();
+        const userName = String(row[1] || "").trim().toLowerCase();
+        const email = String(row[2] || "").trim().toLowerCase();
+
         return userName === login || email === login;
     });
 
-    if (!user) throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
+    console.log("User found:", !!user);
 
-    const ok = await bcrypt.compare(password, user[3]);
-    if (!ok) throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
+    if (user) {
+        console.log("User ID:", user[0]);
+        console.log("Username in Sheet:", user[1]);
+        console.log("Email in Sheet:", user[2]);
+        console.log("Password hash exists:", !!user[3]);
+        console.log("Password hash length:", user[3]?.length);
+        console.log("Password hash prefix:", user[3]?.substring(0, 7));
+    }
+
+    if (!user) {
+        throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
+    }
+
+    const ok = await bcrypt.compare(password, String(user[3] || ""));
+
+    console.log("Password match:", ok);
+    console.log("================================");
+
+    if (!ok) {
+        throw new Error("Username / Email หรือ Password ไม่ถูกต้อง");
+    }
 
     const token = jwt.sign({
-        id: user[0], username: user[1], email: user[2], role: user[4],
-        prefix: user[5], firstName: user[6], lastName: user[7],
-        fullName: user[8], phone: user[9]
-    }, JWT_SECRET, { expiresIn: "30m" });
+        id: user[0],
+        username: user[1],
+        email: user[2],
+        role: user[4],
+        prefix: user[5],
+        firstName: user[6],
+        lastName: user[7],
+        fullName: user[8],
+        phone: user[9]
+    }, JWT_SECRET, {
+        expiresIn: "30m"
+    });
 
     return {
         success: true,
         token,
         user: {
-            id: user[0], username: user[1], email: user[2], role: user[4],
-            prefix: user[5], firstName: user[6], lastName: user[7],
-            fullName: user[8], phone: user[9]
+            id: user[0],
+            username: user[1],
+            email: user[2],
+            role: user[4],
+            prefix: user[5],
+            firstName: user[6],
+            lastName: user[7],
+            fullName: user[8],
+            phone: user[9]
         }
     };
 };
