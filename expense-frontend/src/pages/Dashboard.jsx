@@ -300,60 +300,50 @@ function Dashboard() {
     const map = new Map();
 
     accounts.forEach((account) => {
-      const id = String(
-        account.id ||
-        account.accountTypesId ||
-        account.name ||
-        ""
-      );
-
-      const name =
+      const name = String(
         account.name ||
         account.accountTypeName ||
-        "ไม่ระบุบัญชี";
+        "ไม่ระบุบัญชี"
+      ).trim();
 
-      map.set(id, {
-        id,
-        name,
-        balance: Number(account.balance || 0),
-        income: 0,
-        expense: 0,
-      });
-    });
+      const key = name.toLowerCase();
 
-    filteredTransactions.forEach((item) => {
-      const accountId = String(
-        item.accountTypesId || ""
-      );
-
-      const accountName =
-        item.accountTypeName ||
-        "ไม่ระบุบัญชี";
-
-      let account = map.get(accountId);
-
-      if (!account) {
-        account = {
-          id: accountId || accountName,
-          name: accountName,
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          name,
           balance: 0,
           income: 0,
           expense: 0,
-        };
-
-        map.set(
-          account.id,
-          account
-        );
+        });
       }
 
-      account.income += Number(
-        item.income || 0
-      );
+      const item = map.get(key);
+      item.balance += Number(account.balance || 0);
+    });
 
-      account.expense += Number(
-        item.expense || 0
-      );
+    filteredTransactions.forEach((item) => {
+      const name = String(
+        item.accountTypeName ||
+        "ไม่ระบุบัญชี"
+      ).trim();
+
+      const key = name.toLowerCase();
+
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          name,
+          balance: 0,
+          income: 0,
+          expense: 0,
+        });
+      }
+
+      const account = map.get(key);
+
+      account.income += Number(item.income || 0);
+      account.expense += Number(item.expense || 0);
     });
 
     return Array.from(map.values()).sort(
@@ -551,7 +541,7 @@ function Dashboard() {
     } else {
       text += ` • ${monthNames[
         Number(selectedMonth) - 1
-        ]
+      ]
         }`;
     }
 
@@ -1086,8 +1076,8 @@ function Dashboard() {
                         <div className="flex items-start gap-3">
                           <div
                             className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isIncome
-                                ? "bg-green-100 text-green-600"
-                                : "bg-red-100 text-red-500"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-red-100 text-red-500"
                               }`}
                           >
                             {isIncome ? (
@@ -1114,8 +1104,8 @@ function Dashboard() {
 
                               <p
                                 className={`flex-shrink-0 text-sm font-extrabold ${isIncome
-                                    ? "text-green-600"
-                                    : "text-red-500"
+                                  ? "text-green-600"
+                                  : "text-red-500"
                                   }`}
                               >
                                 {isIncome
