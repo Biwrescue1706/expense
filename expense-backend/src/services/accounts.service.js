@@ -19,10 +19,8 @@ exports.getAll = async (userId) => {
         }));
 };
 
-exports.create = async (
-    userId,
-    data
-) => {
+// CREATE
+exports.create = async (userId, data) => {
     const {
         name,
         balance
@@ -173,8 +171,7 @@ exports.update = async (
         );
     }
 
-    const updatedAt =
-        new Date().toISOString();
+    const updatedAt = new Date().toISOString();
 
     await sheet.updateRow(
         "Accounts",

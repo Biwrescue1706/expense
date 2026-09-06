@@ -3,7 +3,10 @@ const accountTypeService = require("../services/accountType.service");
 // GET
 exports.getAccountTypes = async (req, res) => {
     try {
-        const data = await accountTypeService.getAll();
+        const userId = req.user.id;
+
+
+        const data = await accountTypeService.getAll(userId);
 
         res.json({
             success: true,
@@ -20,7 +23,11 @@ exports.getAccountTypes = async (req, res) => {
 // CREATE
 exports.createAccountType = async (req, res) => {
     try {
-        const result = await accountTypeService.create(req.body);
+        const userId = req.user.id;
+        const result = await accountTypeService.create(
+            userId,
+            req.body
+        );
 
         res.status(201).json(result);
     } catch (err) {
@@ -34,7 +41,9 @@ exports.createAccountType = async (req, res) => {
 // UPDATE
 exports.updateAccountType = async (req, res) => {
     try {
+        const userId = req.user.id;
         const result = await accountTypeService.update(
+            userId,
             req.params.id,
             req.body
         );

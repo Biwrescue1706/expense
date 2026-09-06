@@ -459,6 +459,8 @@ exports.update = async (
     const restoredBalance =
         oldAccountBalance - oldChange;
 
+    const updatedAt = new Date().toISOString();
+
     await sheet.updateRow(
         "Accounts",
         oldAccount[0],
@@ -468,7 +470,7 @@ exports.update = async (
             name: oldAccount[2],
             balance: restoredBalance,
             createdAt: oldAccount[4],
-            updateAt: new Date().toISOString()
+            updatedAt: updatedAt
         }
     );
 
@@ -491,7 +493,7 @@ exports.update = async (
                 name: oldAccount[2],
                 balance: oldAccountBalance,
                 createdAt: oldAccount[4],
-                updateAt: new Date().toISOString()
+                updatedAt: updatedAt
             }
         );
 
@@ -509,9 +511,6 @@ exports.update = async (
         income -
         expense;
 
-    const updatedAt =
-        new Date().toISOString();
-
     await sheet.updateRow(
         "Transactions",
         id,
@@ -527,7 +526,7 @@ exports.update = async (
             balance: transactionBalance,
             note,
             createdAt: oldRow[10],
-            updateAt: updatedAt
+            updatedAt: updatedAt
         }
     );
 
@@ -547,7 +546,7 @@ exports.update = async (
             accountBalance: newAccountBalance,
             note,
             createdAt: oldRow[10],
-            updateAt: updatedAt
+            updatedAt: updatedAt
         }
     };
 };

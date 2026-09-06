@@ -2,21 +2,25 @@ const crypto = require("crypto");
 const sheet = require("./sheet.service");
 
 // GET ALL
-exports.getAll = async () => {
+exports.getAll = async (userId) => {
     const rows = await sheet.getRows("AccountTypes");
 
     return rows
         .slice(1)
+        .filter(row =>
+            String(row[1]) === String(userId)
+        )
         .map(row => ({
             id: row[0],
-            name: row[1] || "",
-            createdAt: row[2] || "",
-            updatedAt: row[3] || ""
+            userId: row[1],
+            name: row[2] || "",
+            createdAt: row[3] || "",
+            updatedAt: row[4] || ""
         }));
 };
 
 // CREATE
-exports.create = async (data) => {
+exports.create = async (userId, data) => {
     const { name } = data;
 
     if (!name || !String(name).trim()) {
@@ -42,6 +46,7 @@ exports.create = async (data) => {
 
     await sheet.appendRow("AccountTypes", [
         id,
+        userId,
         accountTypeName,
         now
     ]);
@@ -51,20 +56,21 @@ exports.create = async (data) => {
         message: "เพิ่มประเภทบัญชีสำเร็จ",
         data: {
             id,
+            userId,
             name: accountTypeName,
-            createdAt: now,
-            updatedAt: now
+            createdAt: now
         }
     };
 };
 
 // UPDATE
-exports.update = async (id, data) => {
+exports.update = async (userId, id, data) => {
     const rows = await sheet.getRows("AccountTypes");
     const accountTypes = rows.slice(1);
 
     const index = accountTypes.findIndex(row =>
-        String(row[0]) === String(id)
+        String(row[0]) === String(id) &&
+        String(row[1]) === String(userId)
     );
 
     if (index === -1) {
@@ -95,9 +101,10 @@ exports.update = async (id, data) => {
 
     await sheet.updateRow("AccountTypes", id, {
         id: oldRow[0],
+        userId: oldRow[1],
         name,
         createdAt: oldRow[2],
-        updatedAt
+        updatedAt: updatedAt
     });
 
     return {
@@ -107,7 +114,7 @@ exports.update = async (id, data) => {
 };
 
 // DELETE
-exports.remove = async (id) => {
+exports.remove = async (userId,id) => {
     const rows = await sheet.getRows("AccountTypes");
 
     if (!rows || rows.length <= 1) {
