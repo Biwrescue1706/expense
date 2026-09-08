@@ -11,7 +11,7 @@ router.get(
 
 router.post(
     "/",
-    accountTypeController.createAccountType
+   authMiddleware, accountTypeController.createAccountType
 );
 
 router.patch(
