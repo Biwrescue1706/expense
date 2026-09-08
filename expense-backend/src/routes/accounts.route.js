@@ -8,27 +8,34 @@ const sheet = require("../services/sheet.service");
 
 router.use(authMiddleware);
 
-const getAccount = async (id) => {
+const getAccount = async (userId, id) => {
     const rows = await sheet.getRows("Accounts");
 
     return rows.slice(1).find(row =>
-        String(row[0] || "").trim() ===
-        String(id || "").trim()
+        String(row[0] || "").trim() === String(id || "").trim() &&
+        String(row[1] || "").trim() === String(userId || "").trim()
     );
 };
 
 // GET /api/accounts
 router.get("/", async (req, res) => {
     try {
+        const userId = req.user.id;
         const rows = await sheet.getRows("Accounts");
 
-        const accounts = rows.slice(1).map(row => ({
-            id: row[0] || "",
-            name: row[1] || "",
-            balance: Number(row[2] || 0),
-            createdAt: row[3] || "",
-            updateAt: row[4] || ""
-        }));
+        const accounts = rows.slice(1)
+            .filter(row =>
+                row[0] &&
+                String(row[1] || "").trim() === String(userId).trim()
+            )
+            .map(row => ({
+                id: row[0] || "",
+                userId: row[1] || "",
+                name: row[2] || "",
+                balance: Number(row[3] || 0),
+                createdAt: row[4] || "",
+                updateAt: row[5] || ""
+            }));
 
         res.json({
             success: true,
@@ -45,7 +52,8 @@ router.get("/", async (req, res) => {
 // GET /api/accounts/:id
 router.get("/:id", async (req, res) => {
     try {
-        const account = await getAccount(req.params.id);
+        const userId = req.user.id;
+        const account = await getAccount(userId, req.params.id);
 
         if (!account) {
             return res.status(404).json({
@@ -58,10 +66,11 @@ router.get("/:id", async (req, res) => {
             success: true,
             data: {
                 id: account[0] || "",
-                name: account[1] || "",
-                balance: Number(account[2] || 0),
-                createdAt: account[3] || "",
-                updateAt: account[4] || ""
+                userId: account[1] || "",
+                name: account[2] || "",
+                balance: Number(account[3] || 0),
+                createdAt: account[4] || "",
+                updateAt: account[5] || ""
             }
         });
     } catch (err) {
@@ -75,6 +84,7 @@ router.get("/:id", async (req, res) => {
 // POST /api/accounts
 router.post("/", async (req, res) => {
     try {
+        const userId = req.user.id;
         const name = String(req.body.name || "").trim();
 
         if (!name) {
@@ -84,7 +94,9 @@ router.post("/", async (req, res) => {
         const rows = await sheet.getRows("Accounts");
 
         const exists = rows.slice(1).some(row =>
-            String(row[1] || "").trim() === name
+            String(row[1] || "").trim() === String(userId).trim() &&
+            String(row[2] || "").trim().toLowerCase() ===
+            name.toLowerCase()
         );
 
         if (exists) {
@@ -96,6 +108,7 @@ router.post("/", async (req, res) => {
 
         await sheet.appendRow("Accounts", [
             id,
+            userId,
             name,
             0,
             now,
@@ -107,6 +120,7 @@ router.post("/", async (req, res) => {
             message: "เพิ่มบัญชีสำเร็จ",
             data: {
                 id,
+                userId,
                 name,
                 balance: 0,
                 createdAt: now,
@@ -124,8 +138,10 @@ router.post("/", async (req, res) => {
 // PATCH /api/accounts/:id
 router.patch("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
-        const oldAccount = await getAccount(id);
+
+        const oldAccount = await getAccount(userId, id);
 
         if (!oldAccount) {
             throw new Error("ไม่พบบัญชี");
@@ -134,7 +150,7 @@ router.patch("/:id", async (req, res) => {
         const name =
             req.body.name !== undefined
                 ? String(req.body.name).trim()
-                : String(oldAccount[1] || "").trim();
+                : String(oldAccount[2] || "").trim();
 
         if (!name) {
             throw new Error("กรุณากรอกชื่อบัญชี");
@@ -144,7 +160,9 @@ router.patch("/:id", async (req, res) => {
 
         const exists = rows.slice(1).some(row =>
             String(row[0] || "").trim() !== String(id).trim() &&
-            String(row[1] || "").trim() === name
+            String(row[1] || "").trim() === String(userId).trim() &&
+            String(row[2] || "").trim().toLowerCase() ===
+            name.toLowerCase()
         );
 
         if (exists) {
@@ -155,9 +173,10 @@ router.patch("/:id", async (req, res) => {
 
         await sheet.updateRow("Accounts", id, {
             id: oldAccount[0],
+            userId: oldAccount[1],
             name,
-            balance: Number(oldAccount[2] || 0),
-            createdAt: oldAccount[3] || "",
+            balance: Number(oldAccount[3] || 0),
+            createdAt: oldAccount[4] || "",
             updateAt: now
         });
 
@@ -166,9 +185,10 @@ router.patch("/:id", async (req, res) => {
             message: "แก้ไขบัญชีสำเร็จ",
             data: {
                 id: oldAccount[0],
+                userId: oldAccount[1],
                 name,
-                balance: Number(oldAccount[2] || 0),
-                createdAt: oldAccount[3] || "",
+                balance: Number(oldAccount[3] || 0),
+                createdAt: oldAccount[4] || "",
                 updateAt: now
             }
         });
@@ -183,14 +203,16 @@ router.patch("/:id", async (req, res) => {
 // DELETE /api/accounts/:id
 router.delete("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
-        const account = await getAccount(id);
+
+        const account = await getAccount(userId, id);
 
         if (!account) {
             throw new Error("ไม่พบบัญชี");
         }
 
-        const balance = Number(account[2] || 0);
+        const balance = Number(account[3] || 0);
 
         if (balance !== 0) {
             throw new Error(
@@ -203,7 +225,7 @@ router.delete("/:id", async (req, res) => {
 
         const hasTransaction =
             transactions.slice(1).some(row =>
-                String(row[4] || "").trim() ===
+                String(row[3] || "").trim() ===
                 String(id).trim()
             );
 
