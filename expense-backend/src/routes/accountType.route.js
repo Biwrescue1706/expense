@@ -16,8 +16,7 @@ router.post(
 
 router.patch(
     "/:id",
-
-    accountTypeController.updateAccountType
+   authMiddleware, accountTypeController.updateAccountType
 );
 
 router.delete(
