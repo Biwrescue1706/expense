@@ -1,31 +1,39 @@
 const express = require("express");
 const crypto = require("crypto");
+
 const router = express.Router();
+
 const authMiddleware = require("../middlewares/auth.middleware");
 const sheet = require("../services/sheet.service");
 
 router.use(authMiddleware);
 
-const getAccount = async (accountId) => {
+const getAccount = async (userId, accountId) => {
     const rows = await sheet.getRows("Accounts");
+
     return rows.slice(1).find(row =>
-        String(row[0] || "").trim() === String(accountId || "").trim()
+        String(row[0] || "").trim() === String(accountId || "").trim() &&
+        String(row[1] || "").trim() === String(userId || "").trim()
     );
 };
 
-const updateAccountBalance = async (accountId, change) => {
-    const account = await getAccount(accountId);
-    if (!account) throw new Error("ไม่พบบัญชีที่เลือก");
+const updateAccountBalance = async (userId, accountId, change) => {
+    const account = await getAccount(userId, accountId);
 
-    const currentBalance = Number(account[2] || 0);
+    if (!account) {
+        throw new Error("ไม่พบบัญชีที่เลือก");
+    }
+
+    const currentBalance = Number(account[3] || 0);
     const newBalance = currentBalance + change;
     const now = new Date().toISOString();
 
     await sheet.updateRow("Accounts", account[0], {
         id: account[0],
-        name: account[1],
+        userId: account[1],
+        name: account[2],
         balance: newBalance,
-        createdAt: account[3],
+        createdAt: account[4],
         updateAt: now
     });
 
@@ -34,15 +42,17 @@ const updateAccountBalance = async (accountId, change) => {
 
 const getType = async (typeId) => {
     const rows = await sheet.getRows("Types");
+
     return rows.slice(1).find(row =>
-        String(row[0]) === String(typeId)
+        String(row[0] || "").trim() === String(typeId || "").trim()
     );
 };
 
 const getCategory = async (categoryId) => {
     const rows = await sheet.getRows("Categories");
+
     return rows.slice(1).find(row =>
-        String(row[0]) === String(categoryId)
+        String(row[0] || "").trim() === String(categoryId || "").trim()
     );
 };
 
@@ -51,7 +61,8 @@ const getTransactionBalance = async (excludeId = null) => {
 
     return rows.slice(1)
         .filter(row =>
-            !excludeId || String(row[0]) !== String(excludeId)
+            !excludeId ||
+            String(row[0] || "").trim() !== String(excludeId).trim()
         )
         .reduce((total, row) => {
             return total +
@@ -60,8 +71,11 @@ const getTransactionBalance = async (excludeId = null) => {
         }, 0);
 };
 
+// GET
 router.get("/", async (req, res) => {
     try {
+        const userId = req.user.id;
+
         const rows = await sheet.getRows("Transactions");
         const typeRows = await sheet.getRows("Types");
         const categoryRows = await sheet.getRows("Categories");
@@ -69,7 +83,11 @@ router.get("/", async (req, res) => {
 
         const types = typeRows.slice(1);
         const categories = categoryRows.slice(1);
-        const accounts = accountRows.slice(1);
+
+        const accounts = accountRows.slice(1)
+            .filter(row =>
+                String(row[1] || "").trim() === String(userId).trim()
+            );
 
         let runningBalance = 0;
 
@@ -95,8 +113,8 @@ router.get("/", async (req, res) => {
                 );
 
                 const account = accounts.find(item =>
-                    String(item[0]).trim() ===
-                    String(row[4]).trim()
+                    String(item[0] || "").trim() ===
+                    String(row[4] || "").trim()
                 );
 
                 const income = Number(row[5] || 0);
@@ -118,8 +136,8 @@ router.get("/", async (req, res) => {
                     updateAt: row[10] || "",
                     typeName: type?.[1] || "",
                     categoryName: category?.[2] || "",
-                    accountTypeName: account?.[1] || "",
-                    accountName: account?.[1] || ""
+                    accountTypeName: account?.[2] || "",
+                    accountName: account?.[2] || ""
                 };
             });
 
@@ -135,8 +153,11 @@ router.get("/", async (req, res) => {
     }
 });
 
+// CREATE
 router.post("/", async (req, res) => {
     try {
+        const userId = req.user.id;
+
         const {
             date,
             typeId,
@@ -160,7 +181,7 @@ router.post("/", async (req, res) => {
 
         const money = Number(amount);
 
-        if (isNaN(money) || money <= 0) {
+        if (!Number.isFinite(money) || money <= 0) {
             throw new Error("จำนวนเงินไม่ถูกต้อง");
         }
 
@@ -186,7 +207,10 @@ router.post("/", async (req, res) => {
             throw new Error("หมวดหมู่นี้ไม่ได้อยู่ในประเภทที่เลือก");
         }
 
-        const account = await getAccount(accountTypesId);
+        const account = await getAccount(
+            userId,
+            accountTypesId
+        );
 
         if (!account) {
             throw new Error("ไม่พบบัญชีที่เลือก");
@@ -204,12 +228,15 @@ router.post("/", async (req, res) => {
             accountChange = -money;
         }
 
-        const accountBalance = await updateAccountBalance(
-            accountTypesId,
-            accountChange
-        );
+        const accountBalance =
+            await updateAccountBalance(
+                userId,
+                accountTypesId,
+                accountChange
+            );
 
-        const previousBalance = await getTransactionBalance();
+        const previousBalance =
+            await getTransactionBalance();
 
         const transactionBalance =
             previousBalance + income - expense;
@@ -257,33 +284,39 @@ router.post("/", async (req, res) => {
     }
 });
 
+// UPDATE
 router.patch("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
+
         const rows = await sheet.getRows("Transactions");
         const transactions = rows.slice(1);
 
-        const index = transactions.findIndex(row =>
-            String(row[0]) === String(id)
+        const oldRow = transactions.find(row =>
+            String(row[0] || "").trim() === String(id).trim()
         );
 
-        if (index === -1) {
+        if (!oldRow) {
             throw new Error("ไม่พบรายการที่ต้องการแก้ไข");
         }
-
-        const oldRow = transactions[index];
 
         const date = req.body.date ?? oldRow[1];
         const typeId = req.body.typeId ?? oldRow[2];
         const categoryId = req.body.categoryId ?? oldRow[3];
-        const accountTypesId = req.body.accountTypesId ?? oldRow[4];
-        const note = req.body.note ?? oldRow[8];
+        const accountTypesId =
+            req.body.accountTypesId ?? oldRow[4];
+
+        const note =
+            req.body.note ?? oldRow[8];
 
         const oldIncome = Number(oldRow[5] || 0);
         const oldExpense = Number(oldRow[6] || 0);
 
         const oldChange =
-            oldIncome > 0 ? oldIncome : -oldExpense;
+            oldIncome > 0
+                ? oldIncome
+                : -oldExpense;
 
         const amount =
             req.body.amount !== undefined
@@ -292,7 +325,7 @@ router.patch("/:id", async (req, res) => {
                     ? oldIncome
                     : oldExpense;
 
-        if (isNaN(amount) || amount <= 0) {
+        if (!Number.isFinite(amount) || amount <= 0) {
             throw new Error("จำนวนเงินไม่ถูกต้อง");
         }
 
@@ -318,16 +351,27 @@ router.patch("/:id", async (req, res) => {
             throw new Error("หมวดหมู่นี้ไม่ได้อยู่ในประเภทที่เลือก");
         }
 
-        const oldAccountId = String(oldRow[4] || "").trim();
-        const newAccountId = String(accountTypesId || "").trim();
+        const oldAccountId =
+            String(oldRow[4] || "").trim();
 
-        const oldAccount = await getAccount(oldAccountId);
+        const newAccountId =
+            String(accountTypesId || "").trim();
+
+        const oldAccount =
+            await getAccount(
+                userId,
+                oldAccountId
+            );
 
         if (!oldAccount) {
             throw new Error("ไม่พบบัญชีเดิมของรายการ");
         }
 
-        const newAccount = await getAccount(newAccountId);
+        const newAccount =
+            await getAccount(
+                userId,
+                newAccountId
+            );
 
         if (!newAccount) {
             throw new Error("ไม่พบบัญชีใหม่ที่เลือก");
@@ -346,56 +390,79 @@ router.patch("/:id", async (req, res) => {
         }
 
         const now = new Date().toISOString();
-        const oldAccountBalance = Number(oldAccount[2] || 0);
-        const restoredBalance = oldAccountBalance - oldChange;
 
-        await sheet.updateRow("Accounts", oldAccount[0], {
-            id: oldAccount[0],
-            name: oldAccount[1],
-            balance: restoredBalance,
-            createdAt: oldAccount[3],
-            updateAt: now
-        });
+        const oldAccountBalance =
+            Number(oldAccount[3] || 0);
+
+        const restoredBalance =
+            oldAccountBalance - oldChange;
+
+        await sheet.updateRow(
+            "Accounts",
+            oldAccount[0],
+            {
+                id: oldAccount[0],
+                userId: oldAccount[1],
+                name: oldAccount[2],
+                balance: restoredBalance,
+                createdAt: oldAccount[4],
+                updateAt: now
+            }
+        );
 
         let newAccountBalance;
 
         try {
             if (oldAccountId === newAccountId) {
-                newAccountBalance = restoredBalance + newChange;
+                newAccountBalance =
+                    restoredBalance + newChange;
 
-                await sheet.updateRow("Accounts", newAccount[0], {
-                    id: newAccount[0],
-                    name: newAccount[1],
-                    balance: newAccountBalance,
-                    createdAt: newAccount[3],
-                    updateAt: now
-                });
-            } else {
-                newAccountBalance = await updateAccountBalance(
-                    newAccountId,
-                    newChange
+                await sheet.updateRow(
+                    "Accounts",
+                    newAccount[0],
+                    {
+                        id: newAccount[0],
+                        userId: newAccount[1],
+                        name: newAccount[2],
+                        balance: newAccountBalance,
+                        createdAt: newAccount[4],
+                        updateAt: now
+                    }
                 );
+            } else {
+                newAccountBalance =
+                    await updateAccountBalance(
+                        userId,
+                        newAccountId,
+                        newChange
+                    );
             }
 
             const previousBalance =
                 await getTransactionBalance(id);
 
             const transactionBalance =
-                previousBalance + income - expense;
+                previousBalance +
+                income -
+                expense;
 
-            await sheet.updateRow("Transactions", id, {
-                id: oldRow[0],
-                date,
-                typeId,
-                categoryId,
-                accountTypesId: newAccountId,
-                income,
-                expense,
-                balance: transactionBalance,
-                note,
-                createdAt: oldRow[9],
-                updateAt: now
-            });
+            await sheet.updateRow(
+                "Transactions",
+                id,
+                {
+                    id: oldRow[0],
+                    date,
+                    typeId,
+                    categoryId,
+                    accountTypesId: newAccountId,
+                    income,
+                    expense,
+                    balance: transactionBalance,
+                    note,
+                    createdAt: oldRow[9],
+                    updateAt: now
+                }
+            );
 
             res.json({
                 success: true,
@@ -416,13 +483,18 @@ router.patch("/:id", async (req, res) => {
                 }
             });
         } catch (error) {
-            await sheet.updateRow("Accounts", oldAccount[0], {
-                id: oldAccount[0],
-                name: oldAccount[1],
-                balance: oldAccountBalance,
-                createdAt: oldAccount[3],
-                updateAt: now
-            });
+            await sheet.updateRow(
+                "Accounts",
+                oldAccount[0],
+                {
+                    id: oldAccount[0],
+                    userId: oldAccount[1],
+                    name: oldAccount[2],
+                    balance: oldAccountBalance,
+                    createdAt: oldAccount[4],
+                    updateAt: now
+                }
+            );
 
             throw error;
         }
@@ -434,44 +506,73 @@ router.patch("/:id", async (req, res) => {
     }
 });
 
+// DELETE
 router.delete("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
-        const rows = await sheet.getRows("Transactions");
 
-        const transaction = rows.slice(1).find(row =>
-            String(row[0] || "").trim() === String(id || "").trim()
-        );
+        const rows =
+            await sheet.getRows("Transactions");
+
+        const transaction =
+            rows.slice(1).find(row =>
+                String(row[0] || "").trim() ===
+                String(id || "").trim()
+            );
 
         if (!transaction) {
             throw new Error("ไม่พบรายการที่ต้องการลบ");
         }
 
-        const accountId = String(transaction[4] || "").trim();
-        const account = await getAccount(accountId);
+        const accountId =
+            String(transaction[4] || "").trim();
+
+        const account =
+            await getAccount(
+                userId,
+                accountId
+            );
 
         if (account) {
-            const income = Number(transaction[5] || 0);
-            const expense = Number(transaction[6] || 0);
+            const income =
+                Number(transaction[5] || 0);
+
+            const expense =
+                Number(transaction[6] || 0);
 
             const change =
-                income > 0 ? income : -expense;
+                income > 0
+                    ? income
+                    : -expense;
 
-            const currentBalance = Number(account[2] || 0);
-            const newBalance = currentBalance - change;
+            const currentBalance =
+                Number(account[3] || 0);
 
-            await sheet.updateRow("Accounts", account[0], {
-                id: account[0],
-                name: account[1],
-                balance: newBalance,
-                createdAt: account[3],
-                updateAt: new Date().toISOString()
-            });
+            const newBalance =
+                currentBalance - change;
+
+            await sheet.updateRow(
+                "Accounts",
+                account[0],
+                {
+                    id: account[0],
+                    userId: account[1],
+                    name: account[2],
+                    balance: newBalance,
+                    createdAt: account[4],
+                    updateAt: new Date().toISOString()
+                }
+            );
         }
 
-        const ok = await sheet.deleteRow("Transactions", id);
+        const deleted =
+            await sheet.deleteRow(
+                "Transactions",
+                id
+            );
 
-        if (!ok) {
+        if (!deleted) {
             throw new Error("ลบรายการไม่สำเร็จ");
         }
 
