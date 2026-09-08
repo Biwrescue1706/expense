@@ -8,27 +8,32 @@ const sheet = require("../services/sheet.service");
 
 router.use(authMiddleware);
 
-const getAccountType = async (id) => {
+const getAccountType = async (userId, id) => {
     const rows = await sheet.getRows("AccountTypes");
 
     return rows.slice(1).find(row =>
-        String(row[0] || "").trim() ===
-        String(id || "").trim()
+        String(row[0] || "").trim() === String(id || "").trim() &&
+        String(row[1] || "").trim() === String(userId || "").trim()
     );
 };
 
 // GET /api/account-types
 router.get("/", async (req, res) => {
     try {
+        const userId = req.user.id;
         const rows = await sheet.getRows("AccountTypes");
 
         const data = rows.slice(1)
-            .filter(row => row[0])
+            .filter(row =>
+                row[0] &&
+                String(row[1] || "").trim() === String(userId).trim()
+            )
             .map(row => ({
                 id: row[0] || "",
-                name: row[1] || "",
-                createdAt: row[2] || "",
-                updateAt: row[3] || ""
+                userId: row[1] || "",
+                name: row[2] || "",
+                createdAt: row[3] || "",
+                updateAt: row[4] || ""
             }));
 
         res.json({
@@ -46,7 +51,8 @@ router.get("/", async (req, res) => {
 // GET /api/account-types/:id
 router.get("/:id", async (req, res) => {
     try {
-        const row = await getAccountType(req.params.id);
+        const userId = req.user.id;
+        const row = await getAccountType(userId, req.params.id);
 
         if (!row) {
             return res.status(404).json({
@@ -59,9 +65,10 @@ router.get("/:id", async (req, res) => {
             success: true,
             data: {
                 id: row[0],
-                name: row[1] || "",
-                createdAt: row[2] || "",
-                updateAt: row[3] || ""
+                userId: row[1],
+                name: row[2] || "",
+                createdAt: row[3] || "",
+                updateAt: row[4] || ""
             }
         });
     } catch (err) {
@@ -75,6 +82,7 @@ router.get("/:id", async (req, res) => {
 // POST /api/account-types
 router.post("/", async (req, res) => {
     try {
+        const userId = req.user.id;
         const name = String(req.body.name || "").trim();
 
         if (!name) {
@@ -84,7 +92,8 @@ router.post("/", async (req, res) => {
         const rows = await sheet.getRows("AccountTypes");
 
         const exists = rows.slice(1).some(row =>
-            String(row[1] || "").trim().toLowerCase() ===
+            String(row[1] || "").trim() === String(userId).trim() &&
+            String(row[2] || "").trim().toLowerCase() ===
             name.toLowerCase()
         );
 
@@ -97,6 +106,7 @@ router.post("/", async (req, res) => {
 
         await sheet.appendRow("AccountTypes", [
             id,
+            userId,
             name,
             now,
             now
@@ -107,6 +117,7 @@ router.post("/", async (req, res) => {
             message: "เพิ่มประเภทบัญชีสำเร็จ",
             data: {
                 id,
+                userId,
                 name,
                 createdAt: now,
                 updateAt: now
@@ -123,8 +134,10 @@ router.post("/", async (req, res) => {
 // PATCH /api/account-types/:id
 router.patch("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
-        const oldRow = await getAccountType(id);
+
+        const oldRow = await getAccountType(userId, id);
 
         if (!oldRow) {
             throw new Error("ไม่พบประเภทบัญชี");
@@ -133,7 +146,7 @@ router.patch("/:id", async (req, res) => {
         const name =
             req.body.name !== undefined
                 ? String(req.body.name).trim()
-                : String(oldRow[1] || "").trim();
+                : String(oldRow[2] || "").trim();
 
         if (!name) {
             throw new Error("กรุณากรอกชื่อประเภทบัญชี");
@@ -143,7 +156,8 @@ router.patch("/:id", async (req, res) => {
 
         const exists = rows.slice(1).some(row =>
             String(row[0] || "").trim() !== String(id).trim() &&
-            String(row[1] || "").trim().toLowerCase() ===
+            String(row[1] || "").trim() === String(userId).trim() &&
+            String(row[2] || "").trim().toLowerCase() ===
             name.toLowerCase()
         );
 
@@ -155,8 +169,9 @@ router.patch("/:id", async (req, res) => {
 
         await sheet.updateRow("AccountTypes", id, {
             id: oldRow[0],
+            userId: oldRow[1],
             name,
-            createdAt: oldRow[2] || "",
+            createdAt: oldRow[3] || "",
             updateAt: now
         });
 
@@ -165,8 +180,9 @@ router.patch("/:id", async (req, res) => {
             message: "แก้ไขประเภทบัญชีสำเร็จ",
             data: {
                 id: oldRow[0],
+                userId: oldRow[1],
                 name,
-                createdAt: oldRow[2] || "",
+                createdAt: oldRow[3] || "",
                 updateAt: now
             }
         });
@@ -181,22 +197,25 @@ router.patch("/:id", async (req, res) => {
 // DELETE /api/account-types/:id
 router.delete("/:id", async (req, res) => {
     try {
+        const userId = req.user.id;
         const id = req.params.id;
-        const accountType = await getAccountType(id);
+
+        const accountType = await getAccountType(userId, id);
 
         if (!accountType) {
             throw new Error("ไม่พบประเภทบัญชี");
         }
 
-        const accounts = await sheet.getRows("Accounts");
+        const transactions =
+            await sheet.getRows("Transactions");
 
-        const used = accounts.slice(1).some(row =>
-            String(row[0] || "").trim() === String(id).trim()
+        const used = transactions.slice(1).some(row =>
+            String(row[3] || "").trim() === String(id).trim()
         );
 
         if (used) {
             throw new Error(
-                "ไม่สามารถลบประเภทบัญชีที่มีการใช้งานได้"
+                "ไม่สามารถลบประเภทบัญชีที่มีรายการธุรกรรมใช้งานอยู่ได้"
             );
         }
 
