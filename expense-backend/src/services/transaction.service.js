@@ -131,8 +131,9 @@ exports.getAll = async (userId) => {
         );
 
         const accountType = accountTypeRows.find(item =>
-            String(item[0]) === String(row[5])
-        );
+    String(item[0]) === String(row[5]) &&
+    String(item[1]) === String(userId)
+);
 
         const income = Number(row[6] || 0);
         const expense = Number(row[7] || 0);
@@ -154,7 +155,7 @@ exports.getAll = async (userId) => {
             updateAt: row[11] || "",
             typeName: type?.[1] || "",
             categoryName: category?.[2] || "",
-            accountTypeName: accountType?.[1] || ""
+            accountTypeName: accountType?.[2] || ""
         };
     });
 };
