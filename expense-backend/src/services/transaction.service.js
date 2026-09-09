@@ -87,6 +87,7 @@ const getTransactionBalance = async (
         }, 0);
 };
 
+// GET
 exports.getAll = async (userId) => {
     const rows = await sheet.getRows("Transactions");
     const transactions = rows.slice(1);
@@ -121,7 +122,7 @@ exports.getAll = async (userId) => {
                 new Date(b[10] || 0).getTime();
         });
 
-    return userTransactions.map(row => {
+    const data = userTransactions.map(row => {
         const type = typeRows.find(item =>
             String(item[0]) === String(row[3])
         );
@@ -131,9 +132,9 @@ exports.getAll = async (userId) => {
         );
 
         const accountType = accountTypeRows.find(item =>
-    String(item[0]) === String(row[5]) &&
-    String(item[1]) === String(userId)
-);
+            String(item[0]) === String(row[5]) &&
+            String(item[1]) === String(userId)
+        );
 
         const income = Number(row[6] || 0);
         const expense = Number(row[7] || 0);
@@ -153,13 +154,72 @@ exports.getAll = async (userId) => {
             note: row[9] || "",
             createdAt: row[10] || "",
             updateAt: row[11] || "",
+
             typeName: type?.[1] || "",
             categoryName: category?.[2] || "",
             accountTypeName: accountType?.[2] || ""
         };
     });
+
+    // สรุปยอดแยกตามบัญชี
+    const accountSummary = {};
+
+    data.forEach(transaction => {
+        const accountId = transaction.accountTypesId;
+        const accountName = transaction.accountTypeName;
+
+        if (!accountId) return;
+
+        if (!accountSummary[accountId]) {
+            accountSummary[accountId] = {
+                accountTypesId: accountId,
+                accountTypeName: accountName,
+                income: 0,
+                expense: 0,
+                balance: 0
+            };
+        }
+
+        accountSummary[accountId].income +=
+            transaction.income;
+
+        accountSummary[accountId].expense +=
+            transaction.expense;
+
+        accountSummary[accountId].balance =
+            accountSummary[accountId].income -
+            accountSummary[accountId].expense;
+    });
+
+    // ยอดรวมทั้งหมด
+    const total = {
+        income: data.reduce(
+            (sum, item) =>
+                sum + item.income,
+            0
+        ),
+
+        expense: data.reduce(
+            (sum, item) =>
+                sum + item.expense,
+            0
+        ),
+
+        balance: data.reduce(
+            (sum, item) =>
+                sum + item.income - item.expense,
+            0
+        )
+    };
+
+    return {
+        transactions: data,
+        accountSummary: Object.values(accountSummary),
+        total
+    };
 };
 
+// CREATE
 exports.create = async (userId, data) => {
     const {
         date,
@@ -236,7 +296,7 @@ exports.create = async (userId, data) => {
     }
 
     const accountName =
-        String(accountType[1] || "").trim();
+        String(accountType[2] || "").trim();
 
     if (!accountName) {
         throw new Error(
@@ -308,6 +368,7 @@ exports.create = async (userId, data) => {
     };
 };
 
+// UPDATE
 exports.update = async (
     userId,
     id,
@@ -431,7 +492,7 @@ exports.update = async (
 
     const newAccountName =
         String(
-            newAccountType[1] || ""
+            newAccountType[2] || ""
         ).trim();
 
     const oldAccountType =
@@ -439,7 +500,7 @@ exports.update = async (
 
     const oldAccountName =
         String(
-            oldAccountType?.[1] || ""
+            oldAccountType?.[2] || ""
         ).trim();
 
     const oldAccount =
@@ -460,7 +521,8 @@ exports.update = async (
     const restoredBalance =
         oldAccountBalance - oldChange;
 
-    const updatedAt = new Date().toISOString();
+    const updatedAt =
+        new Date().toISOString();
 
     await sheet.updateRow(
         "Accounts",
@@ -471,7 +533,7 @@ exports.update = async (
             name: oldAccount[2],
             balance: restoredBalance,
             createdAt: oldAccount[4],
-            updatedAt: updatedAt
+            updateAt: updatedAt
         }
     );
 
@@ -494,7 +556,7 @@ exports.update = async (
                 name: oldAccount[2],
                 balance: oldAccountBalance,
                 createdAt: oldAccount[4],
-                updatedAt: updatedAt
+                updateAt: updatedAt
             }
         );
 
@@ -527,7 +589,7 @@ exports.update = async (
             balance: transactionBalance,
             note,
             createdAt: oldRow[10],
-            updatedAt: updatedAt
+            updateAt: updatedAt
         }
     );
 
@@ -547,11 +609,12 @@ exports.update = async (
             accountBalance: newAccountBalance,
             note,
             createdAt: oldRow[10],
-            updatedAt: updatedAt
+            updateAt: updatedAt
         }
     };
 };
 
+// DELETE
 exports.remove = async (
     userId,
     id
@@ -584,7 +647,7 @@ exports.remove = async (
 
     const accountName =
         String(
-            accountType?.[1] || ""
+            accountType?.[2] || ""
         ).trim();
 
     const income =
