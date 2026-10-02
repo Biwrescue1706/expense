@@ -14,15 +14,7 @@ exports.register = async (req, res) => {
 // Login
 exports.login = async (req, res) => {
     try {
-        console.log("LOGIN BODY:", {
-            username: req.body?.username,
-            hasPassword: !!req.body?.password
-        });
-
         const result = await authService.login(req.body);
-
-        console.log("LOGIN SUCCESS:", result.user.username);
-
         res.cookie("token", result.token, {
             httpOnly: true,
             secure: true,
@@ -37,10 +29,6 @@ exports.login = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("LOGIN ERROR:", err);
-        console.error("LOGIN ERROR MESSAGE:", err.message);
-        console.error("LOGIN ERROR STACK:", err.stack);
-
         return res.status(401).json({
             success: false,
             message: err.message
